@@ -655,6 +655,105 @@ input, select { font-family: inherit; }
 .view-section { display: none; }
 .view-section.active { display: block; }
 
+/* ─── Card / Tab Layout Toggle ─── */
+.tab-only { display: block; }
+.card-only { display: none; }
+.layout-cards .tab-only { display: none; }
+.layout-cards .card-only { display: block; }
+
+/* ─── Type Cards (Card Layout) ─── */
+.type-cards-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 14px;
+  margin-bottom: 16px;
+}
+.type-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  transition: var(--transition);
+  cursor: pointer;
+}
+.type-card:hover { border-color: var(--accent); box-shadow: var(--shadow-sm); }
+.type-card.expanded { border-color: var(--accent); }
+.type-card-header {
+  padding: 16px;
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+}
+.type-card-icon {
+  width: 44px; height: 44px; border-radius: var(--radius);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 20px; flex-shrink: 0;
+}
+.type-card-info { flex: 1; min-width: 0; }
+.type-card-info .tc-name { font-size: 14px; font-weight: 700; }
+.type-card-info .tc-stats { font-size: 12px; color: var(--text-secondary); margin-top: 2px; }
+.type-card-right { text-align: right; flex-shrink: 0; }
+.type-card-right .tc-count { font-size: 24px; font-weight: 700; }
+.type-card-right .tc-amount { font-size: 11px; color: var(--text-secondary); }
+.type-card-urgency {
+  display: flex; gap: 6px; padding: 0 16px 10px;
+}
+.tc-urg-dot {
+  display: inline-flex; align-items: center; gap: 3px;
+  font-size: 10px; font-weight: 600; padding: 2px 6px;
+  border-radius: 8px;
+}
+.type-card-expand {
+  border-top: 1px solid var(--border-light);
+  padding: 0;
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height .35s ease, padding .35s ease;
+}
+.type-card.expanded .type-card-expand {
+  max-height: 600px;
+  padding: 12px;
+  overflow-y: auto;
+}
+.tc-expand-item {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--border-light);
+  font-size: 12px;
+}
+.tc-expand-item:last-child { border-bottom: none; }
+.tc-expand-item .tc-ei-left { display: flex; flex-direction: column; gap: 1px; }
+.tc-expand-item .tc-ei-name { font-weight: 600; font-size: 13px; }
+.tc-expand-item .tc-ei-ref { color: var(--text-muted); font-size: 11px; }
+.tc-expand-item .tc-ei-right { text-align: right; }
+.tc-expand-item .tc-ei-amount { font-weight: 700; font-size: 13px; }
+
+/* ─── Priority Card Items (Card Layout) ─── */
+.priority-cards-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 12px;
+}
+.priority-card {
+  background: var(--surface);
+  border-radius: var(--radius-lg);
+  padding: 16px;
+  cursor: pointer;
+  transition: var(--transition);
+  position: relative;
+  overflow: hidden;
+}
+.priority-card:hover { box-shadow: var(--shadow-sm); }
+.priority-card .pc-type-bar { position: absolute; top: 0; left: 0; right: 0; height: 3px; }
+.priority-card .pc-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+.priority-card .pc-name { font-size: 14px; font-weight: 700; }
+.priority-card .pc-meta { font-size: 12px; color: var(--text-secondary); margin-bottom: 6px; }
+.priority-card .pc-bottom { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.priority-card .pc-amount { font-size: 16px; font-weight: 700; }
+.priority-card.urgency-border-critical { border: 1px solid var(--red-border); background: #fffafa; }
+.priority-card.urgency-border-urgent { border: 1px solid var(--amber-border); background: #fffcf5; }
+.priority-card.urgency-border-normal { border: 1px solid var(--border); }
+
 /* ─── Scrollbar ─── */
 ::-webkit-scrollbar { width: 6px; }
 ::-webkit-scrollbar-track { background: transparent; }
@@ -854,84 +953,158 @@ input, select { font-family: inherit; }
         </div>
       </div>
 
-      <!-- Priority Items List -->
-      <div class="card" style="padding:0; overflow:hidden">
-        <div style="padding:12px 16px; border-bottom: 1px solid var(--border); display:flex; align-items:center; justify-content:space-between">
-          <span style="font-size:13px; font-weight:700">Highest Priority Items</span>
-          <span style="font-size:11px; color:var(--text-muted)">Sorted by urgency across all object types</span>
+      <!-- Priority Items — TAB LAYOUT (Table) -->
+      <div class="tab-only">
+        <div class="card" style="padding:0; overflow:hidden">
+          <div style="padding:12px 16px; border-bottom: 1px solid var(--border); display:flex; align-items:center; justify-content:space-between">
+            <span style="font-size:13px; font-weight:700">Highest Priority Items</span>
+            <span style="font-size:11px; color:var(--text-muted)">Sorted by urgency across all object types</span>
+          </div>
+          <table class="data-table" id="priorityTable">
+            <thead>
+              <tr>
+                <th class="check-col"><input type="checkbox" onclick="toggleAllPriority(this)"></th>
+                <th>Type</th>
+                <th>Description</th>
+                <th>Amount / Detail</th>
+                <th>Workspace</th>
+                <th>Urgency</th>
+                <th>Timers</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr onclick="openDetail('payment','SEPA-2847')" class="animate-in">
+                <td class="check-col"><input type="checkbox" onclick="event.stopPropagation(); toggleCartItem(this, 'SEPA-2847')"></td>
+                <td><span style="font-size:11px;font-weight:600;color:var(--accent)">PAYMENT</span></td>
+                <td><div style="font-weight:600">SEPA Credit — Acme Supplies GmbH</div><div style="font-size:11px;color:var(--text-muted)">Ref: INV-2024-2847</div></td>
+                <td><strong>EUR 125,000.00</strong></td>
+                <td><span class="ws-chip">WS-A Treasury</span></td>
+                <td><span class="urgency-chip critical">Critical</span></td>
+                <td>
+                  <div class="dual-timer">
+                    <div class="timer-line"><span class="timer-label">Cut-off:</span> <span class="timer-val red">18 min</span></div>
+                    <div class="timer-line"><span class="timer-label">SLA:</span> <span class="timer-val red">Breached</span></div>
+                  </div>
+                </td>
+              </tr>
+              <tr onclick="openDetail('payment','SWIFT-1103')">
+                <td class="check-col"><input type="checkbox" onclick="event.stopPropagation(); toggleCartItem(this, 'SWIFT-1103')"></td>
+                <td><span style="font-size:11px;font-weight:600;color:var(--accent)">PAYMENT</span></td>
+                <td><div style="font-weight:600">SWIFT — GlobalTech Inc (USD)</div><div style="font-size:11px;color:var(--text-muted)">Ref: PO-GT-1103</div></td>
+                <td><strong>USD 89,500.00</strong></td>
+                <td><span class="ws-chip">WS-B Operations</span></td>
+                <td><span class="urgency-chip critical">Critical</span></td>
+                <td>
+                  <div class="dual-timer">
+                    <div class="timer-line"><span class="timer-label">Cut-off:</span> <span class="timer-val red">24 min</span></div>
+                    <div class="timer-line"><span class="timer-label">SLA:</span> <span class="timer-val amber">42 min</span></div>
+                  </div>
+                </td>
+              </tr>
+              <tr onclick="openDetail('contact','CONT-0045')">
+                <td class="check-col"><input type="checkbox" onclick="event.stopPropagation()"></td>
+                <td><span style="font-size:11px;font-weight:600;color:var(--purple)">CONTACT</span></td>
+                <td>
+                  <div style="font-weight:600">Payee Modified — Nordic Freight AS</div>
+                  <div style="font-size:11px;color:var(--text-muted)">IBAN changed &bull; <span style="color:var(--red);font-weight:600">Correlated with pending payment</span></div>
+                </td>
+                <td><span class="status-chip close">VoP: Close Match</span></td>
+                <td><span class="ws-chip">WS-C Logistics</span></td>
+                <td><span class="urgency-chip urgent">Urgent</span></td>
+                <td>
+                  <div class="dual-timer">
+                    <div class="timer-line"><span class="timer-label">SLA:</span> <span class="timer-val amber">1h 15min</span></div>
+                  </div>
+                </td>
+              </tr>
+              <tr onclick="openDetail('entitlement','ENT-012')">
+                <td class="check-col"><input type="checkbox" onclick="event.stopPropagation()"></td>
+                <td><span style="font-size:11px;font-weight:600;color:var(--amber)">ENTITLEMENT</span></td>
+                <td><div style="font-weight:600">Payment Limit Increase — Sarah Chen</div><div style="font-size:11px;color:var(--text-muted)">EUR 50K → EUR 200K single payment limit</div></td>
+                <td>—</td>
+                <td><span class="ws-chip">WS-A Treasury</span></td>
+                <td><span class="urgency-chip urgent">Urgent</span></td>
+                <td>
+                  <div class="dual-timer">
+                    <div class="timer-line"><span class="timer-label">SLA:</span> <span class="timer-val amber">1h 45min</span></div>
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
         </div>
-        <table class="data-table" id="priorityTable">
-          <thead>
-            <tr>
-              <th class="check-col"><input type="checkbox" onclick="toggleAllPriority(this)"></th>
-              <th>Type</th>
-              <th>Description</th>
-              <th>Amount / Detail</th>
-              <th>Workspace</th>
-              <th>Urgency</th>
-              <th>Timers</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr onclick="openDetail('payment','SEPA-2847')" class="animate-in">
-              <td class="check-col"><input type="checkbox" onclick="event.stopPropagation(); toggleCartItem(this, 'SEPA-2847')"></td>
-              <td><span style="font-size:11px;font-weight:600;color:var(--accent)">PAYMENT</span></td>
-              <td><div style="font-weight:600">SEPA Credit — Acme Supplies GmbH</div><div style="font-size:11px;color:var(--text-muted)">Ref: INV-2024-2847</div></td>
-              <td><strong>EUR 125,000.00</strong></td>
-              <td><span class="ws-chip">WS-A Treasury</span></td>
-              <td><span class="urgency-chip critical">Critical</span></td>
-              <td>
-                <div class="dual-timer">
-                  <div class="timer-line"><span class="timer-label">Cut-off:</span> <span class="timer-val red">18 min</span></div>
-                  <div class="timer-line"><span class="timer-label">SLA:</span> <span class="timer-val red">Breached</span></div>
-                </div>
-              </td>
-            </tr>
-            <tr onclick="openDetail('payment','SWIFT-1103')">
-              <td class="check-col"><input type="checkbox" onclick="event.stopPropagation(); toggleCartItem(this, 'SWIFT-1103')"></td>
-              <td><span style="font-size:11px;font-weight:600;color:var(--accent)">PAYMENT</span></td>
-              <td><div style="font-weight:600">SWIFT — GlobalTech Inc (USD)</div><div style="font-size:11px;color:var(--text-muted)">Ref: PO-GT-1103</div></td>
-              <td><strong>USD 89,500.00</strong></td>
-              <td><span class="ws-chip">WS-B Operations</span></td>
-              <td><span class="urgency-chip critical">Critical</span></td>
-              <td>
-                <div class="dual-timer">
-                  <div class="timer-line"><span class="timer-label">Cut-off:</span> <span class="timer-val red">24 min</span></div>
-                  <div class="timer-line"><span class="timer-label">SLA:</span> <span class="timer-val amber">42 min</span></div>
-                </div>
-              </td>
-            </tr>
-            <tr onclick="openDetail('contact','CONT-0045')">
-              <td class="check-col"><input type="checkbox" onclick="event.stopPropagation()"></td>
-              <td><span style="font-size:11px;font-weight:600;color:var(--purple)">CONTACT</span></td>
-              <td>
-                <div style="font-weight:600">Payee Modified — Nordic Freight AS</div>
-                <div style="font-size:11px;color:var(--text-muted)">IBAN changed &bull; <span style="color:var(--red);font-weight:600">Correlated with pending payment</span></div>
-              </td>
-              <td><span class="status-chip close">VoP: Close Match</span></td>
-              <td><span class="ws-chip">WS-C Logistics</span></td>
-              <td><span class="urgency-chip urgent">Urgent</span></td>
-              <td>
-                <div class="dual-timer">
-                  <div class="timer-line"><span class="timer-label">SLA:</span> <span class="timer-val amber">1h 15min</span></div>
-                </div>
-              </td>
-            </tr>
-            <tr onclick="openDetail('entitlement','ENT-012')">
-              <td class="check-col"><input type="checkbox" onclick="event.stopPropagation()"></td>
-              <td><span style="font-size:11px;font-weight:600;color:var(--amber)">ENTITLEMENT</span></td>
-              <td><div style="font-weight:600">Payment Limit Increase — Sarah Chen</div><div style="font-size:11px;color:var(--text-muted)">EUR 50K → EUR 200K single payment limit</div></td>
-              <td>—</td>
-              <td><span class="ws-chip">WS-A Treasury</span></td>
-              <td><span class="urgency-chip urgent">Urgent</span></td>
-              <td>
-                <div class="dual-timer">
-                  <div class="timer-line"><span class="timer-label">SLA:</span> <span class="timer-val amber">1h 45min</span></div>
-                </div>
-              </td>
-            </tr>
-          </tbody>
-        </table>
+      </div>
+
+      <!-- Priority Items — CARD LAYOUT -->
+      <div class="card-only">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+          <span style="font-size:13px; font-weight:700">Highest Priority Items</span>
+          <span style="font-size:11px; color:var(--text-muted)">Individual cards per item — sorted by urgency</span>
+        </div>
+        <div class="priority-cards-grid">
+          <div class="priority-card urgency-border-critical" onclick="openDetail('payment','SEPA-2847')">
+            <div class="pc-type-bar" style="background:var(--red)"></div>
+            <div class="pc-top">
+              <span style="font-size:11px;font-weight:700;color:var(--accent);background:var(--accent-light);padding:2px 8px;border-radius:6px">PAYMENT &bull; SEPA</span>
+              <span class="urgency-chip critical">Critical &bull; 18 min</span>
+            </div>
+            <div class="pc-name">Acme Supplies GmbH</div>
+            <div class="pc-meta">Ref: INV-2024-2847 &bull; <span class="ws-chip" style="font-size:10px">WS-A Treasury</span></div>
+            <div class="pc-bottom">
+              <div class="pc-amount">EUR 125,000</div>
+              <div class="dual-timer" style="text-align:right">
+                <div class="timer-line"><span class="timer-label">Cut-off:</span> <span class="timer-val red">18 min</span></div>
+                <div class="timer-line"><span class="timer-label">SLA:</span> <span class="timer-val red">Breached</span></div>
+              </div>
+            </div>
+          </div>
+          <div class="priority-card urgency-border-critical" onclick="openDetail('payment','SWIFT-1103')">
+            <div class="pc-type-bar" style="background:var(--red)"></div>
+            <div class="pc-top">
+              <span style="font-size:11px;font-weight:700;color:var(--accent);background:var(--accent-light);padding:2px 8px;border-radius:6px">PAYMENT &bull; SWIFT</span>
+              <span class="urgency-chip critical">Critical &bull; 24 min</span>
+            </div>
+            <div class="pc-name">GlobalTech Inc</div>
+            <div class="pc-meta">Ref: PO-GT-1103 &bull; <span class="ws-chip" style="font-size:10px">WS-B Operations</span> &bull; <span class="status-chip anomaly" style="font-size:10px">Anomaly</span></div>
+            <div class="pc-bottom">
+              <div class="pc-amount">USD 89,500</div>
+              <div class="dual-timer" style="text-align:right">
+                <div class="timer-line"><span class="timer-label">Cut-off:</span> <span class="timer-val red">24 min</span></div>
+                <div class="timer-line"><span class="timer-label">SLA:</span> <span class="timer-val amber">42 min</span></div>
+              </div>
+            </div>
+          </div>
+          <div class="priority-card urgency-border-urgent" onclick="openDetail('contact','CONT-0045')">
+            <div class="pc-type-bar" style="background:var(--amber)"></div>
+            <div class="pc-top">
+              <span style="font-size:11px;font-weight:700;color:var(--purple);background:var(--purple-bg);padding:2px 8px;border-radius:6px">CONTACT</span>
+              <span class="urgency-chip urgent">Urgent &bull; 1h 15m</span>
+            </div>
+            <div class="pc-name">Nordic Freight AS — IBAN Modified</div>
+            <div class="pc-meta"><span style="color:var(--red);font-weight:600">&#9888; Correlated with pending payment</span> &bull; <span class="ws-chip" style="font-size:10px">WS-C Logistics</span></div>
+            <div class="pc-bottom">
+              <span class="status-chip close">VoP: Close Match</span>
+              <div class="dual-timer" style="text-align:right">
+                <div class="timer-line"><span class="timer-label">SLA:</span> <span class="timer-val amber">1h 15min</span></div>
+              </div>
+            </div>
+          </div>
+          <div class="priority-card urgency-border-urgent" onclick="openDetail('entitlement','ENT-012')">
+            <div class="pc-type-bar" style="background:var(--amber)"></div>
+            <div class="pc-top">
+              <span style="font-size:11px;font-weight:700;color:var(--amber);background:var(--amber-bg);padding:2px 8px;border-radius:6px">ENTITLEMENT</span>
+              <span class="urgency-chip urgent">Urgent &bull; 1h 45m</span>
+            </div>
+            <div class="pc-name">Sarah Chen — Limit Increase</div>
+            <div class="pc-meta">EUR 50K → EUR 200K single payment &bull; <span class="ws-chip" style="font-size:10px">WS-A Treasury</span></div>
+            <div class="pc-bottom">
+              <span style="font-size:13px;font-weight:600;color:var(--amber)">High Risk — 4x increase</span>
+              <div class="dual-timer" style="text-align:right">
+                <div class="timer-line"><span class="timer-label">SLA:</span> <span class="timer-val amber">1h 45min</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
 
       <!-- Post-MVP: Auto-Suggest Urgent Batch -->
@@ -963,54 +1136,168 @@ input, select { font-family: inherit; }
         </div>
       </div>
 
-      <!-- Payment Sub-Tabs -->
-      <div class="sub-tabs" id="paymentSubTabs">
-        <button class="sub-tab active" onclick="setPaymentType('all')">All <span class="count">27</span></button>
-        <button class="sub-tab" onclick="setPaymentType('sepa')">SEPA <span class="count">12</span></button>
-        <button class="sub-tab" onclick="setPaymentType('ach-credit')">ACH Credit <span class="count">5</span></button>
-        <button class="sub-tab" onclick="setPaymentType('ach-debit')">ACH Debit <span class="count">3</span></button>
-        <button class="sub-tab" onclick="setPaymentType('swift')">SWIFT <span class="count">4</span></button>
-        <button class="sub-tab" onclick="setPaymentType('wire')">Domestic Wire <span class="count">3</span></button>
+      <!-- PAYMENTS — TAB LAYOUT -->
+      <div class="tab-only">
+        <div class="sub-tabs" id="paymentSubTabs">
+          <button class="sub-tab active" onclick="setPaymentType('all')">All <span class="count">27</span></button>
+          <button class="sub-tab" onclick="setPaymentType('sepa')">SEPA <span class="count">12</span></button>
+          <button class="sub-tab" onclick="setPaymentType('ach-credit')">ACH Credit <span class="count">5</span></button>
+          <button class="sub-tab" onclick="setPaymentType('ach-debit')">ACH Debit <span class="count">3</span></button>
+          <button class="sub-tab" onclick="setPaymentType('swift')">SWIFT <span class="count">4</span></button>
+          <button class="sub-tab" onclick="setPaymentType('wire')">Domestic Wire <span class="count">3</span></button>
+        </div>
+        <div class="toolbar">
+          <input type="text" class="search-box" placeholder="Search payments...">
+          <button class="filter-btn" onclick="showToast('Filter panel — workspace, urgency, amount range')">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>
+            Filters
+          </button>
+          <select style="padding:6px 10px; border:1px solid var(--border); border-radius:var(--radius); font-size:12px; background:var(--surface)">
+            <option>Sort: Urgency (default)</option>
+            <option>Sort: Amount (high-low)</option>
+            <option>Sort: Execution Date</option>
+            <option>Sort: Workspace</option>
+          </select>
+        </div>
+        <div class="card" style="padding:0; overflow-x:auto">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th class="check-col"><input type="checkbox" onclick="toggleAllPayments(this)"></th>
+                <th>Beneficiary</th>
+                <th>Type</th>
+                <th>Amount</th>
+                <th>Workspace</th>
+                <th>Urgency</th>
+                <th>Timers</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody id="paymentsTableBody">
+            </tbody>
+          </table>
+        </div>
+        <div style="margin-top:12px;display:flex;justify-content:space-between;align-items:center">
+          <span style="font-size:12px;color:var(--text-muted)">Showing 27 items across 4 workspaces</span>
+          <span style="font-size:12px;color:var(--text-muted)">Bank timezone: CET (UTC+1)</span>
+        </div>
       </div>
 
-      <!-- Toolbar -->
-      <div class="toolbar">
-        <input type="text" class="search-box" placeholder="Search payments...">
-        <button class="filter-btn" onclick="showToast('Filter panel — workspace, urgency, amount range')">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>
-          Filters
-        </button>
-        <select style="padding:6px 10px; border:1px solid var(--border); border-radius:var(--radius); font-size:12px; background:var(--surface)">
-          <option>Sort: Urgency (default)</option>
-          <option>Sort: Amount (high-low)</option>
-          <option>Sort: Execution Date</option>
-          <option>Sort: Workspace</option>
-        </select>
-      </div>
-
-      <!-- Payments Table -->
-      <div class="card" style="padding:0; overflow-x:auto">
-        <table class="data-table">
-          <thead>
-            <tr>
-              <th class="check-col"><input type="checkbox" onclick="toggleAllPayments(this)"></th>
-              <th>Beneficiary</th>
-              <th>Type</th>
-              <th>Amount</th>
-              <th>Workspace</th>
-              <th>Urgency</th>
-              <th>Timers</th>
-              <th>Status</th>
-            </tr>
-          </thead>
-          <tbody id="paymentsTableBody">
-          </tbody>
-        </table>
-      </div>
-
-      <div style="margin-top:12px;display:flex;justify-content:space-between;align-items:center">
-        <span style="font-size:12px;color:var(--text-muted)">Showing 27 items across 4 workspaces</span>
-        <span style="font-size:12px;color:var(--text-muted)">Bank timezone: CET (UTC+1)</span>
+      <!-- PAYMENTS — CARD LAYOUT -->
+      <div class="card-only">
+        <div style="margin-bottom:12px;font-size:12px;color:var(--text-secondary)">Each payment type displayed as a summary card. Click to expand and see individual items.</div>
+        <div class="type-cards-grid" id="paymentTypeCards">
+          <div class="type-card" onclick="toggleTypeCard(this)">
+            <div class="type-card-header">
+              <div class="type-card-icon" style="background:var(--accent-light);color:var(--accent)">&#8364;</div>
+              <div class="type-card-info">
+                <div class="tc-name">SEPA</div>
+                <div class="tc-stats">4 workspaces &bull; Most urgent: 18 min</div>
+              </div>
+              <div class="type-card-right">
+                <div class="tc-count">12</div>
+                <div class="tc-amount">EUR 253,300</div>
+              </div>
+            </div>
+            <div class="type-card-urgency">
+              <span class="tc-urg-dot" style="background:var(--red-bg);color:var(--red)">&#9679; 1 critical</span>
+              <span class="tc-urg-dot" style="background:var(--amber-bg);color:var(--amber)">&#9679; 2 urgent</span>
+              <span class="tc-urg-dot" style="background:var(--green-bg);color:var(--green)">&#9679; 9 safe</span>
+            </div>
+            <div class="type-card-expand">
+              <div class="tc-expand-item" onclick="event.stopPropagation();openDetail('payment','SEPA-2847')"><div class="tc-ei-left"><span class="tc-ei-name">Acme Supplies GmbH</span><span class="tc-ei-ref">INV-2024-2847 &bull; WS-A</span></div><div class="tc-ei-right"><span class="tc-ei-amount" style="color:var(--red)">EUR 125,000</span><br><span class="urgency-chip critical" style="font-size:10px">18 min</span></div></div>
+              <div class="tc-expand-item" onclick="event.stopPropagation();openDetail('payment','SEPA-3001')"><div class="tc-ei-left"><span class="tc-ei-name">Nordic Freight AS</span><span class="tc-ei-ref">PO-NF-3001 &bull; WS-C</span></div><div class="tc-ei-right"><span class="tc-ei-amount">EUR 47,500</span><br><span class="urgency-chip urgent" style="font-size:10px">1h 15m</span></div></div>
+              <div class="tc-expand-item"><div class="tc-ei-left"><span class="tc-ei-name">Müller AG</span><span class="tc-ei-ref">INV-2024-2990 &bull; WS-A</span></div><div class="tc-ei-right"><span class="tc-ei-amount">EUR 12,800</span><br><span class="urgency-chip urgent" style="font-size:10px">1h 40m</span></div></div>
+              <div class="tc-expand-item"><div class="tc-ei-left"><span class="tc-ei-name">Rossi SpA, Van der Berg BV, +5 more</span><span class="tc-ei-ref">Multiple workspaces</span></div><div class="tc-ei-right"><span class="tc-ei-amount">EUR 68,000</span><br><span class="urgency-chip normal" style="font-size:10px">4h+</span></div></div>
+            </div>
+          </div>
+          <div class="type-card" onclick="toggleTypeCard(this)">
+            <div class="type-card-header">
+              <div class="type-card-icon" style="background:var(--green-bg);color:var(--green)">$</div>
+              <div class="type-card-info">
+                <div class="tc-name">ACH Credit</div>
+                <div class="tc-stats">1 workspace &bull; Most urgent: 2h 10m</div>
+              </div>
+              <div class="type-card-right">
+                <div class="tc-count">5</div>
+                <div class="tc-amount">USD 56,300</div>
+              </div>
+            </div>
+            <div class="type-card-urgency">
+              <span class="tc-urg-dot" style="background:var(--amber-bg);color:var(--amber)">&#9679; 1 urgent</span>
+              <span class="tc-urg-dot" style="background:var(--green-bg);color:var(--green)">&#9679; 4 safe</span>
+            </div>
+            <div class="type-card-expand">
+              <div class="tc-expand-item"><div class="tc-ei-left"><span class="tc-ei-name">Davis Corporation</span><span class="tc-ei-ref">PO-DC-501 &bull; WS-D</span></div><div class="tc-ei-right"><span class="tc-ei-amount">USD 34,200</span><br><span class="urgency-chip urgent" style="font-size:10px">2h 10m</span></div></div>
+              <div class="tc-expand-item"><div class="tc-ei-left"><span class="tc-ei-name">Thompson LLC + 3 more</span><span class="tc-ei-ref">WS-D Americas</span></div><div class="tc-ei-right"><span class="tc-ei-amount">USD 22,100</span><br><span class="urgency-chip normal" style="font-size:10px">5h+</span></div></div>
+            </div>
+          </div>
+          <div class="type-card" onclick="toggleTypeCard(this)">
+            <div class="type-card-header">
+              <div class="type-card-icon" style="background:var(--amber-bg);color:var(--amber)">&#8644;</div>
+              <div class="type-card-info">
+                <div class="tc-name">ACH Debit</div>
+                <div class="tc-stats">1 workspace &bull; Most urgent: 5h 30m</div>
+              </div>
+              <div class="type-card-right">
+                <div class="tc-count">3</div>
+                <div class="tc-amount">USD 15,800</div>
+              </div>
+            </div>
+            <div class="type-card-urgency">
+              <span class="tc-urg-dot" style="background:var(--green-bg);color:var(--green)">&#9679; 3 safe</span>
+            </div>
+            <div class="type-card-expand">
+              <div class="tc-expand-item"><div class="tc-ei-left"><span class="tc-ei-name">MegaCorp Holdings</span><span class="tc-ei-ref">DD-MH-102 &bull; WS-D</span></div><div class="tc-ei-right"><span class="tc-ei-amount">USD 15,800</span><br><span class="urgency-chip normal" style="font-size:10px">5h 30m</span></div></div>
+              <div class="tc-expand-item"><div class="tc-ei-left"><span class="tc-ei-name">+ 2 more items</span><span class="tc-ei-ref">WS-D Americas</span></div><div class="tc-ei-right"><span class="urgency-chip normal" style="font-size:10px">6h+</span></div></div>
+            </div>
+          </div>
+          <div class="type-card" onclick="toggleTypeCard(this)">
+            <div class="type-card-header">
+              <div class="type-card-icon" style="background:#fef3c7;color:#92400e">&#127760;</div>
+              <div class="type-card-info">
+                <div class="tc-name">SWIFT</div>
+                <div class="tc-stats">1 workspace &bull; Most urgent: 24 min</div>
+              </div>
+              <div class="type-card-right">
+                <div class="tc-count">4</div>
+                <div class="tc-amount">USD 131,500</div>
+              </div>
+            </div>
+            <div class="type-card-urgency">
+              <span class="tc-urg-dot" style="background:var(--red-bg);color:var(--red)">&#9679; 1 critical</span>
+              <span class="tc-urg-dot" style="background:var(--green-bg);color:var(--green)">&#9679; 3 safe</span>
+            </div>
+            <div class="type-card-expand">
+              <div class="tc-expand-item" onclick="event.stopPropagation();openDetail('payment','SWIFT-1103')"><div class="tc-ei-left"><span class="tc-ei-name">GlobalTech Inc</span><span class="tc-ei-ref">PO-GT-1103 &bull; WS-B &bull; <span style="color:var(--red)">ANOMALY</span></span></div><div class="tc-ei-right"><span class="tc-ei-amount" style="color:var(--red)">USD 89,500</span><br><span class="urgency-chip critical" style="font-size:10px">24 min</span></div></div>
+              <div class="tc-expand-item"><div class="tc-ei-left"><span class="tc-ei-name">Yamamoto Trading + 2 more</span><span class="tc-ei-ref">WS-B Operations</span></div><div class="tc-ei-right"><span class="tc-ei-amount">USD 42,000</span><br><span class="urgency-chip normal" style="font-size:10px">7h</span></div></div>
+            </div>
+          </div>
+          <div class="type-card" onclick="toggleTypeCard(this)">
+            <div class="type-card-header">
+              <div class="type-card-icon" style="background:var(--blue-bg);color:var(--blue)">&#9889;</div>
+              <div class="type-card-info">
+                <div class="tc-name">Domestic Wire</div>
+                <div class="tc-stats">1 workspace &bull; Most urgent: 5h</div>
+              </div>
+              <div class="type-card-right">
+                <div class="tc-count">3</div>
+                <div class="tc-amount">USD 74,500</div>
+              </div>
+            </div>
+            <div class="type-card-urgency">
+              <span class="tc-urg-dot" style="background:var(--green-bg);color:var(--green)">&#9679; 3 safe</span>
+            </div>
+            <div class="type-card-expand">
+              <div class="tc-expand-item"><div class="tc-ei-left"><span class="tc-ei-name">Smith & Partners</span><span class="tc-ei-ref">ADV-SP-201 &bull; WS-D</span></div><div class="tc-ei-right"><span class="tc-ei-amount">USD 56,000</span><br><span class="urgency-chip normal" style="font-size:10px">5h</span></div></div>
+              <div class="tc-expand-item"><div class="tc-ei-left"><span class="tc-ei-name">Anderson & Co + 1 more</span><span class="tc-ei-ref">WS-D Americas</span></div><div class="tc-ei-right"><span class="tc-ei-amount">USD 18,500</span><br><span class="urgency-chip normal" style="font-size:10px">6h+</span></div></div>
+            </div>
+          </div>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <span style="font-size:12px;color:var(--text-muted)">27 items across 5 payment types &bull; 4 workspaces</span>
+          <span style="font-size:12px;color:var(--text-muted)">Bank timezone: CET (UTC+1)</span>
+        </div>
       </div>
 
       <!-- Post-MVP: Kanban Workflow Stages -->
@@ -1062,79 +1349,132 @@ input, select { font-family: inherit; }
         </div>
       </div>
 
-      <div class="sub-tabs">
-        <button class="sub-tab active">All Contacts <span class="count">8</span></button>
-        <button class="sub-tab">New Payees <span class="count">3</span></button>
-        <button class="sub-tab">Modifications <span class="count">5</span></button>
+      <!-- CONTACTS — TAB LAYOUT -->
+      <div class="tab-only">
+        <div class="sub-tabs">
+          <button class="sub-tab active">All Contacts <span class="count">8</span></button>
+          <button class="sub-tab">New Payees <span class="count">3</span></button>
+          <button class="sub-tab">Modifications <span class="count">5</span></button>
+        </div>
+        <div class="card" style="padding:0; overflow-x:auto">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th class="check-col"><input type="checkbox"></th>
+                <th>Payee Name</th>
+                <th>Change Type</th>
+                <th>Detail</th>
+                <th>VoP Status</th>
+                <th>Workspace</th>
+                <th>Requested By</th>
+                <th>SLA</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr onclick="openDetail('contact','CONT-0045')">
+                <td class="check-col"><input type="checkbox" onclick="event.stopPropagation()"></td>
+                <td><strong>Nordic Freight AS</strong><div style="font-size:11px;color:var(--red);font-weight:600">&#9888; Correlated with pending payment</div></td>
+                <td>IBAN Modified</td>
+                <td style="font-size:12px">DE89...4321 → DE76...8765</td>
+                <td><span class="status-chip close">Close Match</span></td>
+                <td><span class="ws-chip">WS-C Logistics</span></td>
+                <td>J. Müller</td>
+                <td><span class="timer-val amber">1h 15min</span></td>
+              </tr>
+              <tr>
+                <td class="check-col"><input type="checkbox" onclick="event.stopPropagation()"></td>
+                <td><strong>Evergreen Solutions Ltd</strong></td>
+                <td>New Payee</td>
+                <td style="font-size:12px">GB29NWBK60161331926819</td>
+                <td><span class="status-chip match">Match</span></td>
+                <td><span class="ws-chip">WS-A Treasury</span></td>
+                <td>S. Chen</td>
+                <td><span class="timer-val green">4h 20min</span></td>
+              </tr>
+              <tr>
+                <td class="check-col"><input type="checkbox" onclick="event.stopPropagation()"></td>
+                <td><strong>Rapid Transit Corp</strong></td>
+                <td>New Payee</td>
+                <td style="font-size:12px">US routing: 021000021</td>
+                <td><span style="font-size:11px;color:var(--text-muted)">N/A (US)</span></td>
+                <td><span class="ws-chip">WS-D Americas</span></td>
+                <td>M. Johnson</td>
+                <td><span class="timer-val green">6h</span></td>
+              </tr>
+              <tr>
+                <td class="check-col"><input type="checkbox" onclick="event.stopPropagation()"></td>
+                <td><strong>Dubois SARL</strong></td>
+                <td>Name Modified</td>
+                <td style="font-size:12px">Dubois SA → Dubois SARL</td>
+                <td><span class="status-chip match">Match</span></td>
+                <td><span class="ws-chip">WS-B Operations</span></td>
+                <td>L. Petit</td>
+                <td><span class="timer-val green">5h 30min</span></td>
+              </tr>
+              <tr>
+                <td class="check-col"><input type="checkbox" onclick="event.stopPropagation()"></td>
+                <td><strong>Shanghai Trading Co</strong></td>
+                <td>Account Modified</td>
+                <td style="font-size:12px">SWIFT BIC changed</td>
+                <td><span class="status-chip nomatch">No Match</span></td>
+                <td><span class="ws-chip">WS-B Operations</span></td>
+                <td>R. Wang</td>
+                <td><span class="timer-val amber">2h 10min</span></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
       </div>
 
-      <div class="card" style="padding:0; overflow-x:auto">
-        <table class="data-table">
-          <thead>
-            <tr>
-              <th class="check-col"><input type="checkbox"></th>
-              <th>Payee Name</th>
-              <th>Change Type</th>
-              <th>Detail</th>
-              <th>VoP Status</th>
-              <th>Workspace</th>
-              <th>Requested By</th>
-              <th>SLA</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr onclick="openDetail('contact','CONT-0045')">
-              <td class="check-col"><input type="checkbox" onclick="event.stopPropagation()"></td>
-              <td><strong>Nordic Freight AS</strong><div style="font-size:11px;color:var(--red);font-weight:600">&#9888; Correlated with pending payment</div></td>
-              <td>IBAN Modified</td>
-              <td style="font-size:12px">DE89...4321 → DE76...8765</td>
-              <td><span class="status-chip close">Close Match</span></td>
-              <td><span class="ws-chip">WS-C Logistics</span></td>
-              <td>J. Müller</td>
-              <td><span class="timer-val amber">1h 15min</span></td>
-            </tr>
-            <tr>
-              <td class="check-col"><input type="checkbox" onclick="event.stopPropagation()"></td>
-              <td><strong>Evergreen Solutions Ltd</strong></td>
-              <td>New Payee</td>
-              <td style="font-size:12px">GB29NWBK60161331926819</td>
-              <td><span class="status-chip match">Match</span></td>
-              <td><span class="ws-chip">WS-A Treasury</span></td>
-              <td>S. Chen</td>
-              <td><span class="timer-val green">4h 20min</span></td>
-            </tr>
-            <tr>
-              <td class="check-col"><input type="checkbox" onclick="event.stopPropagation()"></td>
-              <td><strong>Rapid Transit Corp</strong></td>
-              <td>New Payee</td>
-              <td style="font-size:12px">US routing: 021000021</td>
-              <td><span style="font-size:11px;color:var(--text-muted)">N/A (US)</span></td>
-              <td><span class="ws-chip">WS-D Americas</span></td>
-              <td>M. Johnson</td>
-              <td><span class="timer-val green">6h</span></td>
-            </tr>
-            <tr>
-              <td class="check-col"><input type="checkbox" onclick="event.stopPropagation()"></td>
-              <td><strong>Dubois SARL</strong></td>
-              <td>Name Modified</td>
-              <td style="font-size:12px">Dubois SA → Dubois SARL</td>
-              <td><span class="status-chip match">Match</span></td>
-              <td><span class="ws-chip">WS-B Operations</span></td>
-              <td>L. Petit</td>
-              <td><span class="timer-val green">5h 30min</span></td>
-            </tr>
-            <tr>
-              <td class="check-col"><input type="checkbox" onclick="event.stopPropagation()"></td>
-              <td><strong>Shanghai Trading Co</strong></td>
-              <td>Account Modified</td>
-              <td style="font-size:12px">SWIFT BIC changed</td>
-              <td><span class="status-chip nomatch">No Match</span></td>
-              <td><span class="ws-chip">WS-B Operations</span></td>
-              <td>R. Wang</td>
-              <td><span class="timer-val amber">2h 10min</span></td>
-            </tr>
-          </tbody>
-        </table>
+      <!-- CONTACTS — CARD LAYOUT -->
+      <div class="card-only">
+        <div class="type-cards-grid">
+          <div class="type-card" onclick="toggleTypeCard(this)">
+            <div class="type-card-header">
+              <div class="type-card-icon" style="background:var(--green-bg);color:var(--green)">&#10010;</div>
+              <div class="type-card-info">
+                <div class="tc-name">New Payees</div>
+                <div class="tc-stats">3 workspaces &bull; All VoP verified</div>
+              </div>
+              <div class="type-card-right">
+                <div class="tc-count">3</div>
+                <div class="tc-amount">Pending creation</div>
+              </div>
+            </div>
+            <div class="type-card-urgency">
+              <span class="tc-urg-dot" style="background:var(--green-bg);color:var(--green)">&#9679; 2 Match</span>
+              <span class="tc-urg-dot" style="background:var(--bg);color:var(--text-muted)">&#9679; 1 N/A (US)</span>
+            </div>
+            <div class="type-card-expand">
+              <div class="tc-expand-item"><div class="tc-ei-left"><span class="tc-ei-name">Evergreen Solutions Ltd</span><span class="tc-ei-ref">GB29NWBK... &bull; WS-A &bull; S. Chen</span></div><div class="tc-ei-right"><span class="status-chip match">Match</span></div></div>
+              <div class="tc-expand-item"><div class="tc-ei-left"><span class="tc-ei-name">Rapid Transit Corp</span><span class="tc-ei-ref">US routing: 021000021 &bull; WS-D &bull; M. Johnson</span></div><div class="tc-ei-right"><span style="font-size:11px;color:var(--text-muted)">N/A (US)</span></div></div>
+              <div class="tc-expand-item"><div class="tc-ei-left"><span class="tc-ei-name">+ 1 more new payee</span></div><div class="tc-ei-right"><span class="status-chip match">Match</span></div></div>
+            </div>
+          </div>
+          <div class="type-card" onclick="toggleTypeCard(this)" style="border-color:var(--amber-border)">
+            <div class="type-card-header">
+              <div class="type-card-icon" style="background:var(--amber-bg);color:var(--amber)">&#9998;</div>
+              <div class="type-card-info">
+                <div class="tc-name">Modifications</div>
+                <div class="tc-stats">2 workspaces &bull; <span style="color:var(--red);font-weight:600">1 fraud alert</span></div>
+              </div>
+              <div class="type-card-right">
+                <div class="tc-count" style="color:var(--amber)">5</div>
+                <div class="tc-amount">Pending review</div>
+              </div>
+            </div>
+            <div class="type-card-urgency">
+              <span class="tc-urg-dot" style="background:var(--red-bg);color:var(--red)">&#9888; 1 correlation alert</span>
+              <span class="tc-urg-dot" style="background:var(--amber-bg);color:var(--amber)">&#9679; 1 Close Match</span>
+              <span class="tc-urg-dot" style="background:var(--red-bg);color:var(--red)">&#9679; 1 No Match</span>
+            </div>
+            <div class="type-card-expand">
+              <div class="tc-expand-item" style="background:#fff5f5;border-left:3px solid var(--red)" onclick="event.stopPropagation();openDetail('contact','CONT-0045')"><div class="tc-ei-left"><span class="tc-ei-name" style="color:var(--red)">&#9888; Nordic Freight AS</span><span class="tc-ei-ref">IBAN changed &bull; WS-C &bull; Correlated with EUR 47,500 payment</span></div><div class="tc-ei-right"><span class="status-chip close">Close Match</span></div></div>
+              <div class="tc-expand-item"><div class="tc-ei-left"><span class="tc-ei-name">Shanghai Trading Co</span><span class="tc-ei-ref">SWIFT BIC changed &bull; WS-B &bull; R. Wang</span></div><div class="tc-ei-right"><span class="status-chip nomatch">No Match</span></div></div>
+              <div class="tc-expand-item"><div class="tc-ei-left"><span class="tc-ei-name">Dubois SARL + 2 more</span><span class="tc-ei-ref">Name changes &bull; WS-B</span></div><div class="tc-ei-right"><span class="status-chip match">Match</span></div></div>
+            </div>
+          </div>
+        </div>
       </div>
 
       <div style="margin-top:12px;padding:12px 16px;background:var(--blue-bg);border-radius:var(--radius-lg);font-size:12px;color:var(--text-secondary)">
@@ -1151,80 +1491,148 @@ input, select { font-family: inherit; }
         </div>
       </div>
 
-      <div class="sub-tabs">
-        <button class="sub-tab active">All <span class="count">5</span></button>
-        <button class="sub-tab">Access Control <span class="count">2</span></button>
-        <button class="sub-tab">Limits <span class="count">1</span></button>
-        <button class="sub-tab">Approval Rules <span class="count">2</span></button>
+      <!-- ENTITLEMENTS — TAB LAYOUT -->
+      <div class="tab-only">
+        <div class="sub-tabs">
+          <button class="sub-tab active">All <span class="count">5</span></button>
+          <button class="sub-tab">Access Control <span class="count">2</span></button>
+          <button class="sub-tab">Limits <span class="count">1</span></button>
+          <button class="sub-tab">Approval Rules <span class="count">2</span></button>
+        </div>
+        <div class="card" style="padding:0; overflow-x:auto">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th class="check-col"><input type="checkbox"></th>
+                <th>User</th>
+                <th>Change Type</th>
+                <th>Detail</th>
+                <th>Workspace</th>
+                <th>Requested By</th>
+                <th>Risk Level</th>
+                <th>SLA</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td class="check-col"><input type="checkbox" onclick="event.stopPropagation()"></td>
+                <td><strong>Sarah Chen</strong></td>
+                <td>Limit Increase</td>
+                <td style="font-size:12px">Single payment: EUR 50K → EUR 200K</td>
+                <td><span class="ws-chip">WS-A Treasury</span></td>
+                <td>M. Director</td>
+                <td><span class="urgency-chip urgent">High</span></td>
+                <td><span class="timer-val amber">1h 45min</span></td>
+              </tr>
+              <tr>
+                <td class="check-col"><input type="checkbox" onclick="event.stopPropagation()"></td>
+                <td><strong>James Wilson</strong></td>
+                <td>Access Grant</td>
+                <td style="font-size:12px">Payment approval access — SEPA, SWIFT</td>
+                <td><span class="ws-chip">WS-B Operations</span></td>
+                <td>IT Admin</td>
+                <td><span class="urgency-chip normal">Medium</span></td>
+                <td><span class="timer-val green">6h</span></td>
+              </tr>
+              <tr>
+                <td class="check-col"><input type="checkbox" onclick="event.stopPropagation()"></td>
+                <td><strong>Maria Garcia</strong></td>
+                <td>Access Revoke</td>
+                <td style="font-size:12px">Remove ACH Debit approval rights</td>
+                <td><span class="ws-chip">WS-D Americas</span></td>
+                <td>Compliance</td>
+                <td><span class="urgency-chip urgent">High</span></td>
+                <td><span class="timer-val amber">3h</span></td>
+              </tr>
+              <tr>
+                <td class="check-col"><input type="checkbox" onclick="event.stopPropagation()"></td>
+                <td><strong>WS-C Team</strong></td>
+                <td>Approval Rule</td>
+                <td style="font-size:12px">Dual approval threshold: EUR 10K → EUR 25K</td>
+                <td><span class="ws-chip">WS-C Logistics</span></td>
+                <td>CFO Office</td>
+                <td><span class="urgency-chip urgent">High</span></td>
+                <td><span class="timer-val amber">2h 30min</span></td>
+              </tr>
+              <tr>
+                <td class="check-col"><input type="checkbox" onclick="event.stopPropagation()"></td>
+                <td><strong>New Hire Batch</strong></td>
+                <td>Bulk Access</td>
+                <td style="font-size:12px">5 users — read-only payment view access</td>
+                <td><span class="ws-chip">WS-A Treasury</span></td>
+                <td>HR/IT Joint</td>
+                <td><span class="urgency-chip normal">Low</span></td>
+                <td><span class="timer-val green">8h</span></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
       </div>
 
-      <div class="card" style="padding:0; overflow-x:auto">
-        <table class="data-table">
-          <thead>
-            <tr>
-              <th class="check-col"><input type="checkbox"></th>
-              <th>User</th>
-              <th>Change Type</th>
-              <th>Detail</th>
-              <th>Workspace</th>
-              <th>Requested By</th>
-              <th>Risk Level</th>
-              <th>SLA</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td class="check-col"><input type="checkbox" onclick="event.stopPropagation()"></td>
-              <td><strong>Sarah Chen</strong></td>
-              <td>Limit Increase</td>
-              <td style="font-size:12px">Single payment: EUR 50K → EUR 200K</td>
-              <td><span class="ws-chip">WS-A Treasury</span></td>
-              <td>M. Director</td>
-              <td><span class="urgency-chip urgent">High</span></td>
-              <td><span class="timer-val amber">1h 45min</span></td>
-            </tr>
-            <tr>
-              <td class="check-col"><input type="checkbox" onclick="event.stopPropagation()"></td>
-              <td><strong>James Wilson</strong></td>
-              <td>Access Grant</td>
-              <td style="font-size:12px">Payment approval access — SEPA, SWIFT</td>
-              <td><span class="ws-chip">WS-B Operations</span></td>
-              <td>IT Admin</td>
-              <td><span class="urgency-chip normal">Medium</span></td>
-              <td><span class="timer-val green">6h</span></td>
-            </tr>
-            <tr>
-              <td class="check-col"><input type="checkbox" onclick="event.stopPropagation()"></td>
-              <td><strong>Maria Garcia</strong></td>
-              <td>Access Revoke</td>
-              <td style="font-size:12px">Remove ACH Debit approval rights</td>
-              <td><span class="ws-chip">WS-D Americas</span></td>
-              <td>Compliance</td>
-              <td><span class="urgency-chip urgent">High</span></td>
-              <td><span class="timer-val amber">3h</span></td>
-            </tr>
-            <tr>
-              <td class="check-col"><input type="checkbox" onclick="event.stopPropagation()"></td>
-              <td><strong>WS-C Team</strong></td>
-              <td>Approval Rule</td>
-              <td style="font-size:12px">Dual approval threshold: EUR 10K → EUR 25K</td>
-              <td><span class="ws-chip">WS-C Logistics</span></td>
-              <td>CFO Office</td>
-              <td><span class="urgency-chip urgent">High</span></td>
-              <td><span class="timer-val amber">2h 30min</span></td>
-            </tr>
-            <tr>
-              <td class="check-col"><input type="checkbox" onclick="event.stopPropagation()"></td>
-              <td><strong>New Hire Batch</strong></td>
-              <td>Bulk Access</td>
-              <td style="font-size:12px">5 users — read-only payment view access</td>
-              <td><span class="ws-chip">WS-A Treasury</span></td>
-              <td>HR/IT Joint</td>
-              <td><span class="urgency-chip normal">Low</span></td>
-              <td><span class="timer-val green">8h</span></td>
-            </tr>
-          </tbody>
-        </table>
+      <!-- ENTITLEMENTS — CARD LAYOUT -->
+      <div class="card-only">
+        <div class="type-cards-grid">
+          <div class="type-card" onclick="toggleTypeCard(this)">
+            <div class="type-card-header">
+              <div class="type-card-icon" style="background:var(--accent-light);color:var(--accent)">&#128274;</div>
+              <div class="type-card-info">
+                <div class="tc-name">Access Control</div>
+                <div class="tc-stats">Grant &amp; revoke requests</div>
+              </div>
+              <div class="type-card-right">
+                <div class="tc-count">2</div>
+                <div class="tc-amount">1 high risk</div>
+              </div>
+            </div>
+            <div class="type-card-urgency">
+              <span class="tc-urg-dot" style="background:var(--amber-bg);color:var(--amber)">&#9679; 1 high</span>
+              <span class="tc-urg-dot" style="background:var(--green-bg);color:var(--green)">&#9679; 1 medium</span>
+            </div>
+            <div class="type-card-expand">
+              <div class="tc-expand-item"><div class="tc-ei-left"><span class="tc-ei-name">James Wilson — Access Grant</span><span class="tc-ei-ref">SEPA, SWIFT approval access &bull; WS-B &bull; IT Admin</span></div><div class="tc-ei-right"><span class="urgency-chip normal" style="font-size:10px">Medium</span></div></div>
+              <div class="tc-expand-item"><div class="tc-ei-left"><span class="tc-ei-name">Maria Garcia — Access Revoke</span><span class="tc-ei-ref">Remove ACH Debit rights &bull; WS-D &bull; Compliance</span></div><div class="tc-ei-right"><span class="urgency-chip urgent" style="font-size:10px">High</span></div></div>
+            </div>
+          </div>
+          <div class="type-card" onclick="toggleTypeCard(this)" style="border-color:var(--amber-border)">
+            <div class="type-card-header">
+              <div class="type-card-icon" style="background:var(--amber-bg);color:var(--amber)">&#8593;</div>
+              <div class="type-card-info">
+                <div class="tc-name">Limits</div>
+                <div class="tc-stats">Payment threshold changes</div>
+              </div>
+              <div class="type-card-right">
+                <div class="tc-count" style="color:var(--amber)">1</div>
+                <div class="tc-amount">High risk</div>
+              </div>
+            </div>
+            <div class="type-card-urgency">
+              <span class="tc-urg-dot" style="background:var(--amber-bg);color:var(--amber)">&#9679; 4x limit increase</span>
+            </div>
+            <div class="type-card-expand">
+              <div class="tc-expand-item" onclick="event.stopPropagation();openDetail('entitlement','ENT-012')"><div class="tc-ei-left"><span class="tc-ei-name">Sarah Chen — Limit Increase</span><span class="tc-ei-ref">EUR 50K → EUR 200K single payment &bull; WS-A &bull; M. Director</span></div><div class="tc-ei-right"><span class="urgency-chip urgent" style="font-size:10px">High — 4x</span></div></div>
+            </div>
+          </div>
+          <div class="type-card" onclick="toggleTypeCard(this)">
+            <div class="type-card-header">
+              <div class="type-card-icon" style="background:var(--purple-bg);color:var(--purple)">&#9881;</div>
+              <div class="type-card-info">
+                <div class="tc-name">Approval Rules</div>
+                <div class="tc-stats">Workflow policy changes</div>
+              </div>
+              <div class="type-card-right">
+                <div class="tc-count">2</div>
+                <div class="tc-amount">High risk</div>
+              </div>
+            </div>
+            <div class="type-card-urgency">
+              <span class="tc-urg-dot" style="background:var(--amber-bg);color:var(--amber)">&#9679; 2 high risk</span>
+            </div>
+            <div class="type-card-expand">
+              <div class="tc-expand-item"><div class="tc-ei-left"><span class="tc-ei-name">WS-C Team — Threshold Change</span><span class="tc-ei-ref">Dual approval: EUR 10K → EUR 25K &bull; CFO Office</span></div><div class="tc-ei-right"><span class="urgency-chip urgent" style="font-size:10px">High</span></div></div>
+              <div class="tc-expand-item"><div class="tc-ei-left"><span class="tc-ei-name">New Hire Batch — Bulk Access</span><span class="tc-ei-ref">5 users read-only &bull; WS-A &bull; HR/IT Joint</span></div><div class="tc-ei-right"><span class="urgency-chip normal" style="font-size:10px">Low</span></div></div>
+            </div>
+          </div>
+        </div>
       </div>
     </section>
 
@@ -2140,7 +2548,20 @@ function toggleApproveAllExcept() {
 function setTabMode(mode) {
   document.querySelectorAll('.proto-bar .toggle-group:first-of-type .tbtn').forEach(b => b.classList.remove('active'));
   event.target.classList.add('active');
-  showToast(mode === 'tabs' ? 'Tab layout active' : 'Card layout — prototype exploration mode');
+  const content = document.getElementById('contentArea');
+  if (mode === 'cards') {
+    content.classList.add('layout-cards');
+    showToast('Card layout active — items grouped as expandable summary cards');
+  } else {
+    content.classList.remove('layout-cards');
+    showToast('Tab layout active — sub-tabs with data table view');
+  }
+}
+
+function toggleTypeCard(el) {
+  const wasExpanded = el.classList.contains('expanded');
+  el.closest('.type-cards-grid').querySelectorAll('.type-card').forEach(c => c.classList.remove('expanded'));
+  if (!wasExpanded) el.classList.add('expanded');
 }
 
 function setView(mode) {
