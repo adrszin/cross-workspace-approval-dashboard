@@ -2893,5 +2893,421 @@ updateCartUI();
 
 document.getElementById('detailModal').addEventListener('click', closeModal);
 </script>
+
+<!-- ═══════ SCREENSHOT FEEDBACK TOOL ═══════ -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<style>
+.fb-trigger {
+  position: fixed; bottom: 24px; left: 24px; z-index: 9000;
+  background: linear-gradient(135deg, #7c3aed, #6d28d9); color: #fff;
+  border: none; border-radius: 14px; padding: 12px 20px;
+  font-size: 13px; font-weight: 700; cursor: pointer;
+  box-shadow: 0 4px 20px rgba(124,58,237,.35);
+  display: flex; align-items: center; gap: 8px;
+  transition: transform .15s ease, box-shadow .15s ease;
+}
+.fb-trigger:hover { transform: translateY(-2px); box-shadow: 0 6px 28px rgba(124,58,237,.45); }
+.fb-trigger svg { flex-shrink: 0; }
+
+.fb-overlay {
+  position: fixed; inset: 0; z-index: 9500;
+  cursor: crosshair; display: none;
+}
+.fb-overlay.active { display: block; }
+.fb-overlay-bg {
+  position: absolute; inset: 0;
+  background: rgba(0,0,0,.35);
+  pointer-events: none;
+}
+.fb-overlay-hint {
+  position: fixed; top: 16px; left: 50%; transform: translateX(-50%);
+  background: rgba(0,0,0,.85); color: #fff; padding: 10px 20px;
+  border-radius: 10px; font-size: 13px; font-weight: 600; z-index: 9501;
+  display: flex; align-items: center; gap: 12px;
+  box-shadow: 0 4px 16px rgba(0,0,0,.3);
+}
+.fb-overlay-hint .fb-cancel-btn {
+  background: rgba(255,255,255,.15); border: none; color: #fff;
+  padding: 4px 12px; border-radius: 6px; font-size: 12px;
+  font-weight: 600; cursor: pointer;
+}
+.fb-overlay-hint .fb-cancel-btn:hover { background: rgba(255,255,255,.25); }
+.fb-sel-rect {
+  position: fixed; border: 2px solid #7c3aed;
+  background: rgba(124,58,237,.08);
+  box-shadow: 0 0 0 9999px rgba(0,0,0,.35);
+  display: none; z-index: 9502;
+  pointer-events: none;
+}
+
+.fb-modal-backdrop {
+  position: fixed; inset: 0; z-index: 10000;
+  background: rgba(0,0,0,.6); display: none;
+  align-items: center; justify-content: center;
+  backdrop-filter: blur(4px);
+}
+.fb-modal-backdrop.open { display: flex; }
+.fb-modal {
+  background: #fff; border-radius: 16px; width: 560px; max-width: 92vw;
+  max-height: 90vh; overflow-y: auto;
+  box-shadow: 0 20px 60px rgba(0,0,0,.25);
+  animation: fadeIn .2s ease;
+}
+.fb-modal-header {
+  padding: 20px 24px 16px; border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: space-between;
+}
+.fb-modal-header h3 { font-size: 16px; font-weight: 700; display: flex; align-items: center; gap: 8px; }
+.fb-modal-header h3 svg { color: #7c3aed; }
+.fb-modal-close { background: none; border: none; font-size: 22px; color: var(--text-muted); cursor: pointer; padding: 4px 8px; border-radius: 6px; }
+.fb-modal-close:hover { background: var(--bg); }
+.fb-modal-body { padding: 20px 24px; }
+.fb-preview-wrap {
+  border: 1px solid var(--border); border-radius: var(--radius-lg);
+  overflow: hidden; margin-bottom: 16px; max-height: 280px;
+  display: flex; align-items: center; justify-content: center;
+  background: #f8f9fb;
+}
+.fb-preview-wrap img { max-width: 100%; max-height: 280px; display: block; }
+.fb-comment-label { font-size: 12px; font-weight: 700; color: var(--text-secondary); margin-bottom: 6px; display: block; }
+.fb-comment-input {
+  width: 100%; min-height: 80px; padding: 10px 12px;
+  border: 1px solid var(--border); border-radius: var(--radius);
+  font-size: 13px; font-family: inherit; resize: vertical;
+  transition: border-color .15s ease;
+}
+.fb-comment-input:focus { outline: none; border-color: #7c3aed; box-shadow: 0 0 0 3px rgba(124,58,237,.12); }
+.fb-meta { font-size: 11px; color: var(--text-muted); margin-top: 8px; }
+.fb-modal-footer {
+  padding: 16px 24px; border-top: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+}
+.fb-submit-btn {
+  background: linear-gradient(135deg, #7c3aed, #6d28d9); color: #fff;
+  border: none; border-radius: var(--radius); padding: 10px 24px;
+  font-size: 13px; font-weight: 700; cursor: pointer;
+  transition: opacity .15s ease;
+}
+.fb-submit-btn:hover { opacity: .9; }
+.fb-submit-btn:disabled { opacity: .5; cursor: not-allowed; }
+.fb-discard-btn {
+  background: none; border: 1px solid var(--border); border-radius: var(--radius);
+  padding: 10px 18px; font-size: 13px; font-weight: 600; color: var(--text-secondary);
+  cursor: pointer;
+}
+.fb-discard-btn:hover { background: var(--bg); }
+.fb-status { font-size: 12px; font-weight: 600; }
+.fb-status.success { color: var(--green); }
+.fb-status.error { color: var(--red); }
+
+.fb-setup-row {
+  display: flex; align-items: center; gap: 8px; margin-bottom: 12px;
+}
+.fb-setup-row input {
+  flex: 1; padding: 8px 10px; border: 1px solid var(--border);
+  border-radius: var(--radius); font-size: 12px; font-family: monospace;
+}
+.fb-setup-row button {
+  padding: 8px 14px; border: none; border-radius: var(--radius);
+  background: #7c3aed; color: #fff; font-size: 12px; font-weight: 600;
+  cursor: pointer; white-space: nowrap;
+}
+.fb-setup-info {
+  background: var(--purple-bg); border: 1px solid var(--purple-border);
+  border-radius: var(--radius); padding: 12px; font-size: 12px;
+  color: var(--text-secondary); margin-bottom: 12px; line-height: 1.6;
+}
+.fb-badge {
+  display: inline-flex; align-items: center; gap: 4px;
+  background: var(--green-bg); color: var(--green); padding: 2px 8px;
+  border-radius: 8px; font-size: 11px; font-weight: 700;
+}
+.fb-badge.disconnected { background: var(--amber-bg); color: var(--amber); }
+</style>
+
+<!-- Feedback trigger button -->
+<button class="fb-trigger" onclick="startFeedback()" id="fbTrigger" title="Screenshot & provide feedback">
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+  Feedback
+</button>
+
+<!-- Selection overlay -->
+<div class="fb-overlay" id="fbOverlay">
+  <div class="fb-overlay-bg"></div>
+  <div class="fb-overlay-hint">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+    Click and drag to select the area you want to capture
+    <button class="fb-cancel-btn" onclick="cancelFeedback()">Cancel (Esc)</button>
+  </div>
+</div>
+<div class="fb-sel-rect" id="fbSelRect"></div>
+
+<!-- Feedback comment modal -->
+<div class="fb-modal-backdrop" id="fbModal">
+  <div class="fb-modal" onclick="event.stopPropagation()">
+    <div class="fb-modal-header">
+      <h3>
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+        Submit Feedback
+      </h3>
+      <button class="fb-modal-close" onclick="closeFeedbackModal()">&times;</button>
+    </div>
+    <div class="fb-modal-body">
+      <div id="fbSetupArea"></div>
+      <div class="fb-preview-wrap" id="fbPreviewWrap"></div>
+      <label class="fb-comment-label">Your Comment</label>
+      <textarea class="fb-comment-input" id="fbComment" placeholder="Describe what you see, what you expected, or any suggestions..."></textarea>
+      <div class="fb-meta" id="fbMeta"></div>
+    </div>
+    <div class="fb-modal-footer">
+      <button class="fb-discard-btn" onclick="closeFeedbackModal()">Discard</button>
+      <div>
+        <span class="fb-status" id="fbStatus"></span>
+        <button class="fb-submit-btn" id="fbSubmitBtn" onclick="submitFeedback()">Submit Feedback</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const FB_REPO = 'adrszin/cross-workspace-approval-dashboard';
+const FB_FOLDER = 'feedback';
+
+let fbSelecting = false;
+let fbStartX = 0, fbStartY = 0;
+let fbCapturedDataURL = null;
+let fbCapturedRect = null;
+
+function getFbToken() { return localStorage.getItem('fb_gh_token') || ''; }
+function setFbToken(t) { localStorage.setItem('fb_gh_token', t); }
+
+function renderSetupArea() {
+  const area = document.getElementById('fbSetupArea');
+  const token = getFbToken();
+  if (token) {
+    area.innerHTML = `<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+      <span class="fb-badge">&#10003; Connected to GitHub</span>
+      <button style="background:none;border:none;font-size:11px;color:var(--text-muted);cursor:pointer;text-decoration:underline" onclick="setFbToken('');renderSetupArea()">Disconnect</button>
+    </div>`;
+  } else {
+    area.innerHTML = `<div class="fb-setup-info">
+      <strong>One-time setup:</strong> To save feedback directly to the project repository, enter a GitHub Personal Access Token with <code>Contents: Read &amp; Write</code> permission for the <code>${FB_REPO}</code> repo.<br>
+      <a href="https://github.com/settings/personal-access-tokens/new" target="_blank" style="color:#7c3aed;font-weight:600">Create a fine-grained token &rarr;</a>
+    </div>
+    <div class="fb-setup-row">
+      <input type="password" id="fbTokenInput" placeholder="github_pat_...">
+      <button onclick="saveFbToken()">Connect</button>
+    </div>`;
+  }
+}
+
+function saveFbToken() {
+  const input = document.getElementById('fbTokenInput');
+  if (input && input.value.trim()) {
+    setFbToken(input.value.trim());
+    renderSetupArea();
+    showToast('GitHub token saved — feedback will be stored in the repository');
+  }
+}
+
+function startFeedback() {
+  document.getElementById('fbOverlay').classList.add('active');
+  document.getElementById('fbSelRect').style.display = 'none';
+  fbSelecting = false;
+  document.getElementById('fbTrigger').style.display = 'none';
+}
+
+function cancelFeedback() {
+  document.getElementById('fbOverlay').classList.remove('active');
+  document.getElementById('fbSelRect').style.display = 'none';
+  fbSelecting = false;
+  document.getElementById('fbTrigger').style.display = 'flex';
+}
+
+document.getElementById('fbOverlay').addEventListener('mousedown', function(e) {
+  if (e.target.closest('.fb-overlay-hint')) return;
+  fbSelecting = true;
+  fbStartX = e.clientX;
+  fbStartY = e.clientY;
+  const rect = document.getElementById('fbSelRect');
+  rect.style.left = fbStartX + 'px';
+  rect.style.top = fbStartY + 'px';
+  rect.style.width = '0px';
+  rect.style.height = '0px';
+  rect.style.display = 'block';
+});
+
+document.addEventListener('mousemove', function(e) {
+  if (!fbSelecting) return;
+  const rect = document.getElementById('fbSelRect');
+  const x = Math.min(e.clientX, fbStartX);
+  const y = Math.min(e.clientY, fbStartY);
+  const w = Math.abs(e.clientX - fbStartX);
+  const h = Math.abs(e.clientY - fbStartY);
+  rect.style.left = x + 'px';
+  rect.style.top = y + 'px';
+  rect.style.width = w + 'px';
+  rect.style.height = h + 'px';
+});
+
+document.addEventListener('mouseup', function(e) {
+  if (!fbSelecting) return;
+  fbSelecting = false;
+  const x = Math.min(e.clientX, fbStartX);
+  const y = Math.min(e.clientY, fbStartY);
+  const w = Math.abs(e.clientX - fbStartX);
+  const h = Math.abs(e.clientY - fbStartY);
+
+  if (w < 20 || h < 20) {
+    document.getElementById('fbSelRect').style.display = 'none';
+    return;
+  }
+
+  fbCapturedRect = { x, y, w, h };
+  document.getElementById('fbOverlay').classList.remove('active');
+  document.getElementById('fbSelRect').style.display = 'none';
+
+  captureArea(x, y, w, h);
+});
+
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Escape') cancelFeedback();
+});
+
+function captureArea(x, y, w, h) {
+  const scrollX = window.scrollX;
+  const scrollY = window.scrollY;
+
+  html2canvas(document.body, {
+    x: x + scrollX,
+    y: y + scrollY,
+    width: w,
+    height: h,
+    scrollX: -scrollX,
+    scrollY: -scrollY,
+    windowWidth: document.documentElement.scrollWidth,
+    windowHeight: document.documentElement.scrollHeight,
+    useCORS: true,
+    scale: 2,
+    logging: false,
+    ignoreElements: function(el) {
+      return el.id === 'fbOverlay' || el.id === 'fbSelRect' ||
+             el.id === 'fbTrigger' || el.id === 'fbModal';
+    }
+  }).then(function(canvas) {
+    fbCapturedDataURL = canvas.toDataURL('image/png');
+    openFeedbackModal();
+  }).catch(function() {
+    showToast('Screenshot capture failed — please try again');
+    document.getElementById('fbTrigger').style.display = 'flex';
+  });
+}
+
+function openFeedbackModal() {
+  renderSetupArea();
+  document.getElementById('fbPreviewWrap').innerHTML =
+    '<img src="' + fbCapturedDataURL + '" alt="Captured screenshot">';
+  document.getElementById('fbComment').value = '';
+  document.getElementById('fbStatus').textContent = '';
+  document.getElementById('fbSubmitBtn').disabled = false;
+
+  const now = new Date();
+  const view = document.querySelector('.view-section.active')?.id?.replace('view-','') || 'unknown';
+  document.getElementById('fbMeta').innerHTML =
+    `<strong>Page:</strong> ${view} view &bull; <strong>Captured:</strong> ${now.toLocaleString()} &bull; <strong>Area:</strong> ${fbCapturedRect.w}&times;${fbCapturedRect.h}px`;
+
+  document.getElementById('fbModal').classList.add('open');
+}
+
+function closeFeedbackModal() {
+  document.getElementById('fbModal').classList.remove('open');
+  document.getElementById('fbTrigger').style.display = 'flex';
+  fbCapturedDataURL = null;
+}
+
+async function submitFeedback() {
+  const comment = document.getElementById('fbComment').value.trim();
+  if (!comment) {
+    document.getElementById('fbStatus').className = 'fb-status error';
+    document.getElementById('fbStatus').textContent = 'Please add a comment';
+    return;
+  }
+
+  const token = getFbToken();
+  if (!token) {
+    document.getElementById('fbStatus').className = 'fb-status error';
+    document.getElementById('fbStatus').textContent = 'Connect GitHub token first';
+    return;
+  }
+
+  const btn = document.getElementById('fbSubmitBtn');
+  const status = document.getElementById('fbStatus');
+  btn.disabled = true;
+  btn.textContent = 'Submitting...';
+  status.className = 'fb-status';
+  status.textContent = '';
+
+  const now = new Date();
+  const ts = now.toISOString().replace(/[:.]/g, '-').slice(0, 19);
+  const view = document.querySelector('.view-section.active')?.id?.replace('view-','') || 'unknown';
+  const imgFilename = `${FB_FOLDER}/screenshot-${ts}.png`;
+  const mdFilename = `${FB_FOLDER}/feedback-${ts}.md`;
+
+  const base64Img = fbCapturedDataURL.split(',')[1];
+
+  const mdContent = [
+    `# Feedback — ${now.toLocaleDateString('en-US', { year:'numeric', month:'long', day:'numeric' })} ${now.toLocaleTimeString()}`,
+    '',
+    `**View:** ${view}`,
+    `**Captured area:** ${fbCapturedRect.w} × ${fbCapturedRect.h}px`,
+    `**Browser:** ${navigator.userAgent.split(') ').pop()}`,
+    '',
+    '## Screenshot',
+    '',
+    `![screenshot](screenshot-${ts}.png)`,
+    '',
+    '## Comment',
+    '',
+    comment,
+    ''
+  ].join('\n');
+
+  try {
+    const imgResp = await fetch(`https://api.github.com/repos/${FB_REPO}/contents/${imgFilename}`, {
+      method: 'PUT',
+      headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ message: `Feedback screenshot: ${view} view (${ts})`, content: base64Img })
+    });
+
+    if (!imgResp.ok) {
+      const err = await imgResp.json();
+      throw new Error(err.message || 'Image upload failed');
+    }
+
+    const mdResp = await fetch(`https://api.github.com/repos/${FB_REPO}/contents/${mdFilename}`, {
+      method: 'PUT',
+      headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ message: `Feedback comment: ${view} view (${ts})`, content: btoa(unescape(encodeURIComponent(mdContent))) })
+    });
+
+    if (!mdResp.ok) {
+      const err = await mdResp.json();
+      throw new Error(err.message || 'Comment upload failed');
+    }
+
+    status.className = 'fb-status success';
+    status.textContent = '✓ Submitted!';
+    btn.textContent = 'Done';
+    showToast('Feedback saved to repository');
+    setTimeout(closeFeedbackModal, 1500);
+
+  } catch (e) {
+    status.className = 'fb-status error';
+    status.textContent = e.message || 'Submission failed';
+    btn.disabled = false;
+    btn.textContent = 'Retry';
+  }
+}
+</script>
 </body>
 </html>
