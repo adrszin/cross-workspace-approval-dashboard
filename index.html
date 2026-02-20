@@ -780,6 +780,8 @@ input, select { font-family: inherit; }
 @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
 .animate-in { animation: fadeIn .3s ease; }
 
+.combined-panel { animation: fadeIn .2s ease; }
+
 /* ─── Partial Success Banner ─── */
 .partial-banner {
   border-radius: var(--radius-lg); padding: 16px 20px; margin-bottom: 16px;
@@ -813,8 +815,9 @@ input, select { font-family: inherit; }
 <div class="proto-bar">
   <span class="label">Prototype</span>
   <div class="toggle-group">
-    <button class="tbtn active" onclick="setTabMode('tabs')">Tab Layout</button>
-    <button class="tbtn" onclick="setTabMode('cards')">Card Layout</button>
+    <button class="tbtn active" onclick="setLayoutMode('separate')" data-layout="separate">Separate Tabs</button>
+    <button class="tbtn" onclick="setLayoutMode('combined')" data-layout="combined">Combined Tabs</button>
+    <button class="tbtn" onclick="setLayoutMode('cards')" data-layout="cards">Card Layout</button>
   </div>
   <div class="toggle-group">
     <button class="tbtn active" onclick="setView('desktop')">Desktop</button>
@@ -839,7 +842,15 @@ input, select { font-family: inherit; }
         <span class="badge">4</span>
       </button>
     </div>
-    <div class="nav-section">
+    <div class="nav-section" id="navCombined" style="display:none">
+      <div class="nav-section-label">Unified Dashboard</div>
+      <button class="nav-item" onclick="showView('combined')" data-view="combined">
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/></svg>
+        All Approvals
+        <span class="badge">40</span>
+      </button>
+    </div>
+    <div class="nav-section" id="navSeparate">
       <div class="nav-section-label">Approval Objects</div>
       <button class="nav-item" onclick="showView('payments')" data-view="payments">
         <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/></svg>
@@ -1147,16 +1158,25 @@ input, select { font-family: inherit; }
           <button class="sub-tab" onclick="setPaymentType('wire')">Domestic Wire <span class="count">3</span></button>
         </div>
         <div class="toolbar">
-          <input type="text" class="search-box" placeholder="Search payments...">
-          <button class="filter-btn" onclick="showToast('Filter panel — workspace, urgency, amount range')">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>
-            Filters
-          </button>
-          <select style="padding:6px 10px; border:1px solid var(--border); border-radius:var(--radius); font-size:12px; background:var(--surface)">
-            <option>Sort: Urgency (default)</option>
-            <option>Sort: Amount (high-low)</option>
-            <option>Sort: Execution Date</option>
-            <option>Sort: Workspace</option>
+          <input type="text" class="search-box" placeholder="Search payments..." oninput="searchPayments(this.value)" id="paymentSearchBox">
+          <select id="paymentFilterUrgency" style="padding:6px 10px;border:1px solid var(--border);border-radius:var(--radius);font-size:12px;background:var(--surface)" onchange="filterPayments()">
+            <option value="">Filter: All Urgencies</option>
+            <option value="critical">Critical Only</option>
+            <option value="urgent">Urgent Only</option>
+            <option value="normal">Normal Only</option>
+          </select>
+          <select id="paymentFilterWS" style="padding:6px 10px;border:1px solid var(--border);border-radius:var(--radius);font-size:12px;background:var(--surface)" onchange="filterPayments()">
+            <option value="">Filter: All Workspaces</option>
+            <option value="WS-A Treasury">WS-A Treasury</option>
+            <option value="WS-B Operations">WS-B Operations</option>
+            <option value="WS-C Logistics">WS-C Logistics</option>
+            <option value="WS-D Americas">WS-D Americas</option>
+          </select>
+          <select id="paymentSortBox" style="padding:6px 10px;border:1px solid var(--border);border-radius:var(--radius);font-size:12px;background:var(--surface)" onchange="sortPayments(this.value)">
+            <option value="urgency">Sort: Urgency</option>
+            <option value="amount-desc">Sort: Amount (high-low)</option>
+            <option value="amount-asc">Sort: Amount (low-high)</option>
+            <option value="beneficiary">Sort: Beneficiary A-Z</option>
           </select>
         </div>
         <div class="card" style="padding:0; overflow-x:auto">
@@ -1334,6 +1354,13 @@ input, select { font-family: inherit; }
           <h1>Contacts / Payees</h1>
           <div class="subtitle">Payee create & modify approvals with VoP verification <span class="phase-badge mvp">MVP</span></div>
         </div>
+        <div class="header-actions">
+          <button class="action-btn" onclick="showToast('Approve All Except — contacts mode')">Approve All Except</button>
+          <button class="action-btn primary" onclick="openCart()">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>
+            Cart (<span class="cart-count-sync">0</span>)
+          </button>
+        </div>
       </div>
 
       <!-- Correlation Alert (Post-MVP) -->
@@ -1381,7 +1408,7 @@ input, select { font-family: inherit; }
                 <td>J. Müller</td>
                 <td><span class="timer-val amber">1h 15min</span></td>
               </tr>
-              <tr>
+              <tr onclick="openDetail('contact','CONT-0046')">
                 <td class="check-col"><input type="checkbox" onclick="event.stopPropagation()"></td>
                 <td><strong>Evergreen Solutions Ltd</strong></td>
                 <td>New Payee</td>
@@ -1391,7 +1418,7 @@ input, select { font-family: inherit; }
                 <td>S. Chen</td>
                 <td><span class="timer-val green">4h 20min</span></td>
               </tr>
-              <tr>
+              <tr onclick="openDetail('contact','CONT-0047')">
                 <td class="check-col"><input type="checkbox" onclick="event.stopPropagation()"></td>
                 <td><strong>Rapid Transit Corp</strong></td>
                 <td>New Payee</td>
@@ -1401,7 +1428,7 @@ input, select { font-family: inherit; }
                 <td>M. Johnson</td>
                 <td><span class="timer-val green">6h</span></td>
               </tr>
-              <tr>
+              <tr onclick="openDetail('contact','CONT-0048')">
                 <td class="check-col"><input type="checkbox" onclick="event.stopPropagation()"></td>
                 <td><strong>Dubois SARL</strong></td>
                 <td>Name Modified</td>
@@ -1411,7 +1438,7 @@ input, select { font-family: inherit; }
                 <td>L. Petit</td>
                 <td><span class="timer-val green">5h 30min</span></td>
               </tr>
-              <tr>
+              <tr onclick="openDetail('contact','CONT-0049')">
                 <td class="check-col"><input type="checkbox" onclick="event.stopPropagation()"></td>
                 <td><strong>Shanghai Trading Co</strong></td>
                 <td>Account Modified</td>
@@ -1489,6 +1516,13 @@ input, select { font-family: inherit; }
           <h1>Entitlements</h1>
           <div class="subtitle">Access control, limits, and approval rule changes <span class="phase-badge mvp">MVP</span></div>
         </div>
+        <div class="header-actions">
+          <button class="action-btn" onclick="showToast('Approve All Except — entitlements mode')">Approve All Except</button>
+          <button class="action-btn primary" onclick="openCart()">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>
+            Cart (<span class="cart-count-sync">0</span>)
+          </button>
+        </div>
       </div>
 
       <!-- ENTITLEMENTS — TAB LAYOUT -->
@@ -1514,7 +1548,7 @@ input, select { font-family: inherit; }
               </tr>
             </thead>
             <tbody>
-              <tr>
+              <tr onclick="openDetail('entitlement','ENT-012')">
                 <td class="check-col"><input type="checkbox" onclick="event.stopPropagation()"></td>
                 <td><strong>Sarah Chen</strong></td>
                 <td>Limit Increase</td>
@@ -1524,7 +1558,7 @@ input, select { font-family: inherit; }
                 <td><span class="urgency-chip urgent">High</span></td>
                 <td><span class="timer-val amber">1h 45min</span></td>
               </tr>
-              <tr>
+              <tr onclick="openDetail('entitlement','ENT-013')">
                 <td class="check-col"><input type="checkbox" onclick="event.stopPropagation()"></td>
                 <td><strong>James Wilson</strong></td>
                 <td>Access Grant</td>
@@ -1534,7 +1568,7 @@ input, select { font-family: inherit; }
                 <td><span class="urgency-chip normal">Medium</span></td>
                 <td><span class="timer-val green">6h</span></td>
               </tr>
-              <tr>
+              <tr onclick="openDetail('entitlement','ENT-014')">
                 <td class="check-col"><input type="checkbox" onclick="event.stopPropagation()"></td>
                 <td><strong>Maria Garcia</strong></td>
                 <td>Access Revoke</td>
@@ -1544,7 +1578,7 @@ input, select { font-family: inherit; }
                 <td><span class="urgency-chip urgent">High</span></td>
                 <td><span class="timer-val amber">3h</span></td>
               </tr>
-              <tr>
+              <tr onclick="openDetail('entitlement','ENT-015')">
                 <td class="check-col"><input type="checkbox" onclick="event.stopPropagation()"></td>
                 <td><strong>WS-C Team</strong></td>
                 <td>Approval Rule</td>
@@ -1554,7 +1588,7 @@ input, select { font-family: inherit; }
                 <td><span class="urgency-chip urgent">High</span></td>
                 <td><span class="timer-val amber">2h 30min</span></td>
               </tr>
-              <tr>
+              <tr onclick="openDetail('entitlement','ENT-016')">
                 <td class="check-col"><input type="checkbox" onclick="event.stopPropagation()"></td>
                 <td><strong>New Hire Batch</strong></td>
                 <td>Bulk Access</td>
@@ -2161,6 +2195,100 @@ input, select { font-family: inherit; }
       </div>
     </section>
 
+    <!-- ═══════ VIEW: Combined Unified Dashboard ═══════ -->
+    <section class="view-section" id="view-combined">
+      <div class="page-header">
+        <div>
+          <h1>Authorization Dashboard</h1>
+          <div class="subtitle">Unified approval view — all object types in one place <span class="phase-badge mvp">MVP</span></div>
+        </div>
+        <div class="header-actions">
+          <button class="action-btn" onclick="toggleApproveAllExcept()" id="aaeBtnCombined">Approve All Except</button>
+          <button class="action-btn primary" onclick="openCart()">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>
+            Cart (<span class="cart-count-sync">0</span>)
+          </button>
+        </div>
+      </div>
+
+      <!-- Main Object Type Tabs -->
+      <div class="sub-tabs" id="combinedMainTabs" style="border-bottom-width:3px">
+        <button class="sub-tab active" onclick="setCombinedTab('c-payments')" style="font-size:14px;padding:10px 18px">Payments <span class="count" style="background:var(--accent-light);color:var(--accent)">27</span></button>
+        <button class="sub-tab" onclick="setCombinedTab('c-contacts')" style="font-size:14px;padding:10px 18px">Contacts <span class="count">8</span></button>
+        <button class="sub-tab" onclick="setCombinedTab('c-entitlements')" style="font-size:14px;padding:10px 18px">Entitlements <span class="count">5</span></button>
+      </div>
+
+      <!-- Combined: Payments Panel -->
+      <div id="c-payments" class="combined-panel">
+        <div class="sub-tabs" style="margin-top:8px" id="cPaymentSubTabs">
+          <button class="sub-tab active" onclick="setCombinedPaymentType('all',this)">All <span class="count">27</span></button>
+          <button class="sub-tab" onclick="setCombinedPaymentType('sepa',this)">SEPA <span class="count">12</span></button>
+          <button class="sub-tab" onclick="setCombinedPaymentType('ach-credit',this)">ACH Credit <span class="count">5</span></button>
+          <button class="sub-tab" onclick="setCombinedPaymentType('ach-debit',this)">ACH Debit <span class="count">3</span></button>
+          <button class="sub-tab" onclick="setCombinedPaymentType('swift',this)">SWIFT <span class="count">4</span></button>
+          <button class="sub-tab" onclick="setCombinedPaymentType('wire',this)">Domestic Wire <span class="count">3</span></button>
+        </div>
+        <div class="toolbar">
+          <input type="text" class="search-box" placeholder="Search payments..." oninput="searchPayments(this.value)">
+          <select style="padding:6px 10px;border:1px solid var(--border);border-radius:var(--radius);font-size:12px;background:var(--surface)" onchange="sortPayments(this.value)">
+            <option value="urgency">Sort: Urgency</option>
+            <option value="amount-desc">Sort: Amount (high-low)</option>
+            <option value="amount-asc">Sort: Amount (low-high)</option>
+            <option value="beneficiary">Sort: Beneficiary A-Z</option>
+          </select>
+        </div>
+        <div class="card" style="padding:0;overflow-x:auto">
+          <table class="data-table"><thead><tr>
+            <th class="check-col"><input type="checkbox" onclick="toggleAllPayments(this)"></th>
+            <th>Beneficiary</th><th>Type</th><th>Amount</th><th>Workspace</th><th>Urgency</th><th>Timers</th><th>Status</th>
+          </tr></thead><tbody id="combinedPaymentsBody"></tbody></table>
+        </div>
+      </div>
+
+      <!-- Combined: Contacts Panel -->
+      <div id="c-contacts" class="combined-panel" style="display:none">
+        <div class="sub-tabs" style="margin-top:8px">
+          <button class="sub-tab active">All Contacts <span class="count">8</span></button>
+          <button class="sub-tab">New Payees <span class="count">3</span></button>
+          <button class="sub-tab">Modifications <span class="count">5</span></button>
+        </div>
+        <div class="card" style="padding:0;overflow-x:auto">
+          <table class="data-table"><thead><tr>
+            <th class="check-col"><input type="checkbox"></th>
+            <th>Payee Name</th><th>Change Type</th><th>Detail</th><th>VoP Status</th><th>Workspace</th><th>Requested By</th><th>SLA</th>
+          </tr></thead><tbody>
+            <tr onclick="openDetail('contact','CONT-0045')"><td class="check-col"><input type="checkbox" onclick="event.stopPropagation()"></td><td><strong>Nordic Freight AS</strong><div style="font-size:11px;color:var(--red);font-weight:600">&#9888; Correlated</div></td><td>IBAN Modified</td><td style="font-size:12px">DE89...4321 → DE76...8765</td><td><span class="status-chip close">Close Match</span></td><td><span class="ws-chip">WS-C Logistics</span></td><td>J. Müller</td><td><span class="timer-val amber">1h 15min</span></td></tr>
+            <tr onclick="openDetail('contact','CONT-0046')"><td class="check-col"><input type="checkbox" onclick="event.stopPropagation()"></td><td><strong>Evergreen Solutions Ltd</strong></td><td>New Payee</td><td style="font-size:12px">GB29NWBK601613...</td><td><span class="status-chip match">Match</span></td><td><span class="ws-chip">WS-A Treasury</span></td><td>S. Chen</td><td><span class="timer-val green">4h 20min</span></td></tr>
+            <tr onclick="openDetail('contact','CONT-0047')"><td class="check-col"><input type="checkbox" onclick="event.stopPropagation()"></td><td><strong>Rapid Transit Corp</strong></td><td>New Payee</td><td style="font-size:12px">US routing: 021000021</td><td><span style="font-size:11px;color:var(--text-muted)">N/A (US)</span></td><td><span class="ws-chip">WS-D Americas</span></td><td>M. Johnson</td><td><span class="timer-val green">6h</span></td></tr>
+            <tr onclick="openDetail('contact','CONT-0048')"><td class="check-col"><input type="checkbox" onclick="event.stopPropagation()"></td><td><strong>Dubois SARL</strong></td><td>Name Modified</td><td style="font-size:12px">Dubois SA → Dubois SARL</td><td><span class="status-chip match">Match</span></td><td><span class="ws-chip">WS-B Operations</span></td><td>L. Petit</td><td><span class="timer-val green">5h 30min</span></td></tr>
+            <tr onclick="openDetail('contact','CONT-0049')"><td class="check-col"><input type="checkbox" onclick="event.stopPropagation()"></td><td><strong>Shanghai Trading Co</strong></td><td>Account Modified</td><td style="font-size:12px">SWIFT BIC changed</td><td><span class="status-chip nomatch">No Match</span></td><td><span class="ws-chip">WS-B Operations</span></td><td>R. Wang</td><td><span class="timer-val amber">2h 10min</span></td></tr>
+          </tbody></table>
+        </div>
+      </div>
+
+      <!-- Combined: Entitlements Panel -->
+      <div id="c-entitlements" class="combined-panel" style="display:none">
+        <div class="sub-tabs" style="margin-top:8px">
+          <button class="sub-tab active">All <span class="count">5</span></button>
+          <button class="sub-tab">Access Control <span class="count">2</span></button>
+          <button class="sub-tab">Limits <span class="count">1</span></button>
+          <button class="sub-tab">Approval Rules <span class="count">2</span></button>
+        </div>
+        <div class="card" style="padding:0;overflow-x:auto">
+          <table class="data-table"><thead><tr>
+            <th class="check-col"><input type="checkbox"></th>
+            <th>User</th><th>Change Type</th><th>Detail</th><th>Workspace</th><th>Requested By</th><th>Risk Level</th><th>SLA</th>
+          </tr></thead><tbody>
+            <tr onclick="openDetail('entitlement','ENT-012')"><td class="check-col"><input type="checkbox" onclick="event.stopPropagation()"></td><td><strong>Sarah Chen</strong></td><td>Limit Increase</td><td style="font-size:12px">EUR 50K → EUR 200K</td><td><span class="ws-chip">WS-A Treasury</span></td><td>M. Director</td><td><span class="urgency-chip urgent">High</span></td><td><span class="timer-val amber">1h 45min</span></td></tr>
+            <tr onclick="openDetail('entitlement','ENT-013')"><td class="check-col"><input type="checkbox" onclick="event.stopPropagation()"></td><td><strong>James Wilson</strong></td><td>Access Grant</td><td style="font-size:12px">SEPA, SWIFT approval access</td><td><span class="ws-chip">WS-B Operations</span></td><td>IT Admin</td><td><span class="urgency-chip normal">Medium</span></td><td><span class="timer-val green">6h</span></td></tr>
+            <tr onclick="openDetail('entitlement','ENT-014')"><td class="check-col"><input type="checkbox" onclick="event.stopPropagation()"></td><td><strong>Maria Garcia</strong></td><td>Access Revoke</td><td style="font-size:12px">Remove ACH Debit rights</td><td><span class="ws-chip">WS-D Americas</span></td><td>Compliance</td><td><span class="urgency-chip urgent">High</span></td><td><span class="timer-val amber">3h</span></td></tr>
+            <tr onclick="openDetail('entitlement','ENT-015')"><td class="check-col"><input type="checkbox" onclick="event.stopPropagation()"></td><td><strong>WS-C Team</strong></td><td>Approval Rule</td><td style="font-size:12px">Dual approval: EUR 10K → 25K</td><td><span class="ws-chip">WS-C Logistics</span></td><td>CFO Office</td><td><span class="urgency-chip urgent">High</span></td><td><span class="timer-val amber">2h 30min</span></td></tr>
+            <tr onclick="openDetail('entitlement','ENT-016')"><td class="check-col"><input type="checkbox" onclick="event.stopPropagation()"></td><td><strong>New Hire Batch</strong></td><td>Bulk Access</td><td style="font-size:12px">5 users read-only</td><td><span class="ws-chip">WS-A Treasury</span></td><td>HR/IT Joint</td><td><span class="urgency-chip normal">Low</span></td><td><span class="timer-val green">8h</span></td></tr>
+          </tbody></table>
+        </div>
+      </div>
+    </section>
+
   </main>
 </div>
 
@@ -2241,10 +2369,14 @@ input, select { font-family: inherit; }
       <button class="modal-close" onclick="closeModal()">&times;</button>
     </div>
     <div class="modal-body" id="modalBody"></div>
+    <div style="padding:0 24px 12px">
+      <label style="font-size:12px;font-weight:600;color:var(--text-muted)">Comment (optional)</label>
+      <textarea id="approvalComment" style="width:100%;margin-top:4px;padding:8px;border:1px solid var(--border);border-radius:var(--radius);font-size:13px;resize:vertical;min-height:48px;font-family:inherit" placeholder="Add a comment for audit trail..."></textarea>
+    </div>
     <div class="modal-footer" id="modalFooter">
       <button class="action-btn" onclick="closeModal()">Close</button>
       <button class="action-btn danger" onclick="openRejectModal()">Reject</button>
-      <button class="action-btn primary" onclick="showToast('Approved successfully');closeModal()">Approve</button>
+      <button class="action-btn primary" onclick="approveWithComment()">Approve</button>
     </div>
   </div>
 </div>
@@ -2300,15 +2432,69 @@ const PAYMENTS = [
   { id:'WIRE-210', type:'Domestic Wire', beneficiary:'Anderson & Co', ref:'ADV-AC-210', amount:18500, currency:'USD', ws:'WS-D Americas', urgency:'normal', cutoff:'6h 30min', sla:'8h', status:'Entered' },
 ];
 
+const CONTACTS = [
+  { id:'CONT-0045', name:'Nordic Freight AS', changeType:'IBAN Modified', detail:'DE89...4321 → DE76...8765', vop:'Close Match', vopClass:'close', ws:'WS-C Logistics', requestedBy:'J. Müller', sla:'1h 15min', slaClass:'amber', correlated:true, correlatedPayment:'EUR 47,500 — SEPA-3001', prevIBAN:'DE89 3704 0044 0532 0130 00', newIBAN:'DE76 5001 0517 0648 4898 90' },
+  { id:'CONT-0046', name:'Evergreen Solutions Ltd', changeType:'New Payee', detail:'GB29NWBK60161331926819', vop:'Match', vopClass:'match', ws:'WS-A Treasury', requestedBy:'S. Chen', sla:'4h 20min', slaClass:'green', account:'GB29NWBK60161331926819', bankName:'NatWest', country:'United Kingdom' },
+  { id:'CONT-0047', name:'Rapid Transit Corp', changeType:'New Payee', detail:'US routing: 021000021', vop:'N/A (US)', vopClass:'', ws:'WS-D Americas', requestedBy:'M. Johnson', sla:'6h', slaClass:'green', account:'021000021 / 4839201847', bankName:'JPMorgan Chase', country:'United States' },
+  { id:'CONT-0048', name:'Dubois SARL', changeType:'Name Modified', detail:'Dubois SA → Dubois SARL', vop:'Match', vopClass:'match', ws:'WS-B Operations', requestedBy:'L. Petit', sla:'5h 30min', slaClass:'green', prevName:'Dubois SA', newName:'Dubois SARL' },
+  { id:'CONT-0049', name:'Shanghai Trading Co', changeType:'Account Modified', detail:'SWIFT BIC changed', vop:'No Match', vopClass:'nomatch', ws:'WS-B Operations', requestedBy:'R. Wang', sla:'2h 10min', slaClass:'amber', prevBIC:'BKCHCNBJ100', newBIC:'ICBKCNBJSHH' },
+];
+
+const ENTITLEMENTS = [
+  { id:'ENT-012', user:'Sarah Chen', changeType:'Limit Increase', detail:'Single payment: EUR 50K → EUR 200K', ws:'WS-A Treasury', requestedBy:'M. Director', risk:'High', riskClass:'urgent', sla:'1h 45min', slaClass:'amber', currentLimit:'EUR 50,000', requestedLimit:'EUR 200,000', justification:'Expanded supplier relationship requires higher single-payment authority for Q1 contracts.' },
+  { id:'ENT-013', user:'James Wilson', changeType:'Access Grant', detail:'Payment approval access — SEPA, SWIFT', ws:'WS-B Operations', requestedBy:'IT Admin', risk:'Medium', riskClass:'normal', sla:'6h', slaClass:'green', permissions:'SEPA Approval, SWIFT Approval', currentAccess:'Read-only view', justification:'Promoted to Senior Analyst role; requires payment approval capability.' },
+  { id:'ENT-014', user:'Maria Garcia', changeType:'Access Revoke', detail:'Remove ACH Debit approval rights', ws:'WS-D Americas', requestedBy:'Compliance', risk:'High', riskClass:'urgent', sla:'3h', slaClass:'amber', permissions:'ACH Debit Approval', reason:'Compliance audit finding — role reassignment.' },
+  { id:'ENT-015', user:'WS-C Team', changeType:'Approval Rule', detail:'Dual approval threshold: EUR 10K → EUR 25K', ws:'WS-C Logistics', requestedBy:'CFO Office', risk:'High', riskClass:'urgent', sla:'2h 30min', slaClass:'amber', currentRule:'Dual approval ≥ EUR 10,000', proposedRule:'Dual approval ≥ EUR 25,000', justification:'Operational efficiency — reducing approval bottleneck for routine logistics payments.' },
+  { id:'ENT-016', user:'New Hire Batch', changeType:'Bulk Access', detail:'5 users — read-only payment view access', ws:'WS-A Treasury', requestedBy:'HR/IT Joint', risk:'Low', riskClass:'normal', sla:'8h', slaClass:'green', userCount:5, accessLevel:'Read-only payment view', justification:'Q1 onboarding — standard new hire access provisioning.' },
+];
+
 let cartItems = [];
 let currentPaymentType = 'all';
+let currentLayoutMode = 'separate';
+let paymentSearchTerm = '';
+let paymentSortBy = 'urgency';
+let paymentFilterUrgency = '';
+let paymentFilterWS = '';
 
-function renderPaymentTable() {
-  const tbody = document.getElementById('paymentsTableBody');
+const URGENCY_ORDER = { critical: 0, urgent: 1, normal: 2 };
+
+function getFilteredPayments() {
   const typeMap = { 'all':null, 'sepa':'SEPA', 'ach-credit':'ACH Credit', 'ach-debit':'ACH Debit', 'swift':'SWIFT', 'wire':'Domestic Wire' };
-  const filter = typeMap[currentPaymentType];
-  const filtered = filter ? PAYMENTS.filter(p => p.type === filter) : PAYMENTS;
+  const typeFilter = typeMap[currentPaymentType];
+  let filtered = typeFilter ? PAYMENTS.filter(p => p.type === typeFilter) : [...PAYMENTS];
 
+  if (paymentSearchTerm) {
+    const q = paymentSearchTerm.toLowerCase();
+    filtered = filtered.filter(p =>
+      p.beneficiary.toLowerCase().includes(q) ||
+      p.ref.toLowerCase().includes(q) ||
+      p.type.toLowerCase().includes(q) ||
+      p.id.toLowerCase().includes(q) ||
+      p.ws.toLowerCase().includes(q)
+    );
+  }
+
+  if (paymentFilterUrgency) {
+    filtered = filtered.filter(p => p.urgency === paymentFilterUrgency);
+  }
+
+  if (paymentFilterWS) {
+    filtered = filtered.filter(p => p.ws === paymentFilterWS);
+  }
+
+  switch (paymentSortBy) {
+    case 'amount-desc': filtered.sort((a, b) => b.amount - a.amount); break;
+    case 'amount-asc': filtered.sort((a, b) => a.amount - b.amount); break;
+    case 'beneficiary': filtered.sort((a, b) => a.beneficiary.localeCompare(b.beneficiary)); break;
+    default: filtered.sort((a, b) => URGENCY_ORDER[a.urgency] - URGENCY_ORDER[b.urgency]); break;
+  }
+
+  return filtered;
+}
+
+function renderPaymentRows(filtered, tbodyId) {
+  const tbody = document.getElementById(tbodyId);
+  if (!tbody) return;
   tbody.innerHTML = filtered.map(p => {
     const urgClass = p.urgency === 'critical' ? 'critical' : p.urgency === 'urgent' ? 'urgent' : 'normal';
     const cutClass = p.urgency === 'critical' ? 'red' : p.urgency === 'urgent' ? 'amber' : 'green';
@@ -2322,21 +2508,51 @@ function renderPaymentTable() {
       <td><strong>${p.currency} ${p.amount.toLocaleString()}</strong></td>
       <td><span class="ws-chip">${p.ws}</span></td>
       <td><span class="urgency-chip ${urgClass}">${p.urgency.charAt(0).toUpperCase()+p.urgency.slice(1)}</span></td>
-      <td>
-        <div class="dual-timer">
-          <div class="timer-line"><span class="timer-label">Cut-off:</span> <span class="timer-val ${cutClass}">${p.cutoff}</span></div>
-          <div class="timer-line"><span class="timer-label">SLA:</span> <span class="timer-val ${slaClass}">${p.sla}</span></div>
-        </div>
-      </td>
+      <td><div class="dual-timer"><div class="timer-line"><span class="timer-label">Cut-off:</span> <span class="timer-val ${cutClass}">${p.cutoff}</span></div><div class="timer-line"><span class="timer-label">SLA:</span> <span class="timer-val ${slaClass}">${p.sla}</span></div></div></td>
       <td><span style="font-size:11px;color:var(--text-muted)">${p.status}</span></td>
     </tr>`;
   }).join('');
+}
+
+function renderPaymentTable() {
+  const filtered = getFilteredPayments();
+  renderPaymentRows(filtered, 'paymentsTableBody');
+  renderPaymentRows(filtered, 'combinedPaymentsBody');
+  const countEl = document.querySelector('#view-payments .tab-only [style*="Showing"]');
+  if (countEl) countEl.textContent = `Showing ${filtered.length} items across 4 workspaces`;
+}
+
+function searchPayments(term) {
+  paymentSearchTerm = term;
+  document.querySelectorAll('.search-box').forEach(el => { if (el.value !== term) el.value = term; });
+  renderPaymentTable();
+}
+
+function sortPayments(val) {
+  paymentSortBy = val;
+  document.querySelectorAll('#paymentSortBox, #view-combined select[onchange*="sortPayments"]').forEach(el => { if (el.value !== val) el.value = val; });
+  renderPaymentTable();
+}
+
+function filterPayments() {
+  const urgEl = document.getElementById('paymentFilterUrgency');
+  const wsEl = document.getElementById('paymentFilterWS');
+  if (urgEl) paymentFilterUrgency = urgEl.value;
+  if (wsEl) paymentFilterWS = wsEl.value;
+  renderPaymentTable();
 }
 
 function setPaymentType(type) {
   currentPaymentType = type;
   document.querySelectorAll('#paymentSubTabs .sub-tab').forEach(t => t.classList.remove('active'));
   event.target.closest('.sub-tab').classList.add('active');
+  renderPaymentTable();
+}
+
+function setCombinedPaymentType(type, btn) {
+  currentPaymentType = type;
+  document.querySelectorAll('#cPaymentSubTabs .sub-tab').forEach(t => t.classList.remove('active'));
+  btn.closest('.sub-tab').classList.add('active');
   renderPaymentTable();
 }
 
@@ -2356,6 +2572,7 @@ function updateCartUI() {
   document.getElementById('cartFabCount').textContent = count;
   document.getElementById('cartFab').style.display = count > 0 ? 'flex' : 'none';
   document.getElementById('csSummaryCount').textContent = count;
+  document.querySelectorAll('.cart-count-sync').forEach(el => el.textContent = count);
 
   const items = PAYMENTS.filter(p => cartItems.includes(p.id));
   const eurTotal = items.filter(p => p.currency === 'EUR').reduce((s,p) => s + p.amount, 0);
@@ -2372,10 +2589,7 @@ function updateCartUI() {
   } else {
     cartItemsEl.innerHTML = items.map(p => `
       <div class="cart-item">
-        <div>
-          <div style="font-weight:600;font-size:12px">${p.beneficiary}</div>
-          <div style="font-size:11px;color:var(--text-muted)">${p.type} &bull; ${p.ws}</div>
-        </div>
+        <div><div style="font-weight:600;font-size:12px">${p.beneficiary}</div><div style="font-size:11px;color:var(--text-muted)">${p.type} &bull; ${p.ws}</div></div>
         <div style="font-weight:700;font-size:13px;white-space:nowrap">${p.currency} ${p.amount.toLocaleString()}</div>
         <button class="remove-btn" onclick="removeFromCart('${p.id}')">&times;</button>
       </div>
@@ -2393,9 +2607,7 @@ function openCart() { document.getElementById('cartPanel').classList.add('open')
 function closeCart() { document.getElementById('cartPanel').classList.remove('open'); document.getElementById('cartBackdrop').classList.remove('open'); }
 
 function toggleAllPayments(cb) {
-  const typeMap = { 'all':null, 'sepa':'SEPA', 'ach-credit':'ACH Credit', 'ach-debit':'ACH Debit', 'swift':'SWIFT', 'wire':'Domestic Wire' };
-  const filter = typeMap[currentPaymentType];
-  const filtered = filter ? PAYMENTS.filter(p => p.type === filter) : PAYMENTS;
+  const filtered = getFilteredPayments();
   if (cb.checked) {
     filtered.forEach(p => { if (!cartItems.includes(p.id)) cartItems.push(p.id); });
   } else {
@@ -2424,13 +2636,55 @@ function showView(view) {
   document.getElementById('view-' + view).classList.add('active');
   document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
   document.querySelector(`.nav-item[data-view="${view}"]`)?.classList.add('active');
+  if (view === 'combined') renderPaymentTable();
   window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function setLayoutMode(mode) {
+  currentLayoutMode = mode;
+  document.querySelectorAll('.proto-bar .toggle-group:first-of-type .tbtn').forEach(b => b.classList.remove('active'));
+  document.querySelector(`.proto-bar .tbtn[data-layout="${mode}"]`).classList.add('active');
+  const content = document.getElementById('contentArea');
+  const navCombined = document.getElementById('navCombined');
+  const navSeparate = document.getElementById('navSeparate');
+
+  content.classList.remove('layout-cards');
+
+  if (mode === 'combined') {
+    navCombined.style.display = 'block';
+    navSeparate.style.display = 'none';
+    showView('combined');
+    showToast('Combined tab layout — all approval objects in one unified view');
+  } else if (mode === 'cards') {
+    navCombined.style.display = 'none';
+    navSeparate.style.display = 'block';
+    content.classList.add('layout-cards');
+    const activeNav = document.querySelector('#navSeparate .nav-item.active');
+    if (!activeNav) showView('payments');
+    showToast('Card layout active — items grouped as expandable summary cards');
+  } else {
+    navCombined.style.display = 'none';
+    navSeparate.style.display = 'block';
+    const activeNav = document.querySelector('#navSeparate .nav-item.active');
+    if (!activeNav) showView('payments');
+    showToast('Separate tab layout — each object type in its own section');
+  }
+}
+
+function setCombinedTab(panelId) {
+  document.querySelectorAll('#combinedMainTabs .sub-tab').forEach(t => t.classList.remove('active'));
+  event.target.closest('.sub-tab').classList.add('active');
+  document.querySelectorAll('.combined-panel').forEach(p => p.style.display = 'none');
+  document.getElementById(panelId).style.display = 'block';
+  if (panelId === 'c-payments') renderPaymentTable();
 }
 
 function openDetail(type, id) {
   const modal = document.getElementById('detailModal');
   const title = document.getElementById('modalTitle');
   const body = document.getElementById('modalBody');
+  const commentEl = document.getElementById('approvalComment');
+  if (commentEl) commentEl.value = '';
 
   if (type === 'payment') {
     const p = PAYMENTS.find(x => x.id === id) || PAYMENTS[0];
@@ -2460,53 +2714,116 @@ function openDetail(type, id) {
       </div>
       <div class="signing-panel">
         <h4>Transaction Signing <span class="phase-badge mvp" style="vertical-align:middle">MVP</span></h4>
-        <div style="font-size:12px;color:var(--text-muted);margin-bottom:8px">Select your preferred signing method (bank-allowed for web platform):</div>
+        <div style="font-size:12px;color:var(--text-muted);margin-bottom:8px">Select your preferred signing method:</div>
         <div class="signing-option selected" onclick="selectSigning(this)"><input type="radio" name="signing" checked> <div><div style="font-weight:600">Soft Token</div><div style="font-size:11px;color:var(--text-muted)">Approve via banking app</div></div></div>
         <div class="signing-option" onclick="selectSigning(this)"><input type="radio" name="signing"> <div><div style="font-weight:600">Hardware Token + OTP</div><div style="font-size:11px;color:var(--text-muted)">Enter code from physical token</div></div></div>
         <div class="signing-option" onclick="selectSigning(this)"><input type="radio" name="signing"> <div><div style="font-weight:600">SMS OTP</div><div style="font-size:11px;color:var(--text-muted)">One-time code via SMS</div></div></div>
       </div>
     `;
   } else if (type === 'contact') {
-    title.textContent = 'Contact Detail — Nordic Freight AS';
-    body.innerHTML = `
-      <div class="correlation-alert" style="margin-bottom:16px">
-        <div class="ca-header"><span style="font-size:18px">&#9888;</span> BEC Fraud Pattern Alert</div>
-        <div class="ca-body">This payee's IBAN was modified and a pending payment exists. Review both before approving either.</div>
-      </div>
-      <div class="detail-grid">
-        <div class="detail-item"><div class="di-label">Payee Name</div><div class="di-value">Nordic Freight AS</div></div>
-        <div class="detail-item"><div class="di-label">Change Type</div><div class="di-value">IBAN Modified</div></div>
-        <div class="detail-item"><div class="di-label">Previous IBAN</div><div class="di-value" style="text-decoration:line-through;color:var(--text-muted)">DE89 3704 0044 0532 0130 00</div></div>
-        <div class="detail-item"><div class="di-label">New IBAN</div><div class="di-value" style="color:var(--red);font-weight:600">DE76 5001 0517 0648 4898 90</div></div>
-        <div class="detail-item"><div class="di-label">VoP Result</div><div class="di-value"><span class="status-chip close">Close Match</span> — Name close but not exact</div></div>
-        <div class="detail-item"><div class="di-label">Workspace</div><div class="di-value">WS-C Logistics</div></div>
-        <div class="detail-item"><div class="di-label">Requested By</div><div class="di-value">J. Müller</div></div>
-        <div class="detail-item"><div class="di-label">Correlated Payment</div><div class="di-value" style="color:var(--red)">EUR 47,500 — SEPA-3001</div></div>
-      </div>
-      <div style="margin-top:16px;padding:12px;background:var(--blue-bg);border-radius:var(--radius);font-size:12px">
-        <strong>PSD2 Note:</strong> Approving this contact change requires a separate SCA event from any payment approval. These cannot be combined in a single signing action.
-      </div>
-    `;
+    const c = CONTACTS.find(x => x.id === id);
+    if (!c) { modal.classList.add('open'); return; }
+    title.textContent = 'Contact Detail — ' + c.name;
+    let detailHTML = '';
+
+    if (c.correlated) {
+      detailHTML += `<div class="correlation-alert" style="margin-bottom:16px"><div class="ca-header"><span style="font-size:18px">&#9888;</span> BEC Fraud Pattern Alert</div><div class="ca-body">This payee's IBAN was modified and a pending payment exists. Review both before approving either.</div></div>`;
+    }
+
+    detailHTML += `<div class="detail-grid">
+      <div class="detail-item"><div class="di-label">Payee Name</div><div class="di-value">${c.name}</div></div>
+      <div class="detail-item"><div class="di-label">Change Type</div><div class="di-value">${c.changeType}</div></div>`;
+
+    if (c.prevIBAN) {
+      detailHTML += `<div class="detail-item"><div class="di-label">Previous IBAN</div><div class="di-value" style="text-decoration:line-through;color:var(--text-muted)">${c.prevIBAN}</div></div>`;
+      detailHTML += `<div class="detail-item"><div class="di-label">New IBAN</div><div class="di-value" style="color:var(--red);font-weight:600">${c.newIBAN}</div></div>`;
+    } else if (c.account) {
+      detailHTML += `<div class="detail-item"><div class="di-label">Account</div><div class="di-value">${c.account}</div></div>`;
+      detailHTML += `<div class="detail-item"><div class="di-label">Bank</div><div class="di-value">${c.bankName}</div></div>`;
+      detailHTML += `<div class="detail-item"><div class="di-label">Country</div><div class="di-value">${c.country}</div></div>`;
+    } else if (c.prevName) {
+      detailHTML += `<div class="detail-item"><div class="di-label">Previous Name</div><div class="di-value" style="text-decoration:line-through;color:var(--text-muted)">${c.prevName}</div></div>`;
+      detailHTML += `<div class="detail-item"><div class="di-label">New Name</div><div class="di-value" style="font-weight:600">${c.newName}</div></div>`;
+    } else if (c.prevBIC) {
+      detailHTML += `<div class="detail-item"><div class="di-label">Previous BIC</div><div class="di-value" style="text-decoration:line-through;color:var(--text-muted)">${c.prevBIC}</div></div>`;
+      detailHTML += `<div class="detail-item"><div class="di-label">New BIC</div><div class="di-value" style="color:var(--amber);font-weight:600">${c.newBIC}</div></div>`;
+    }
+
+    detailHTML += `
+      <div class="detail-item"><div class="di-label">VoP Result</div><div class="di-value">${c.vopClass ? '<span class="status-chip '+c.vopClass+'">'+c.vop+'</span>' : '<span style="font-size:12px;color:var(--text-muted)">'+c.vop+'</span>'}</div></div>
+      <div class="detail-item"><div class="di-label">Workspace</div><div class="di-value">${c.ws}</div></div>
+      <div class="detail-item"><div class="di-label">Requested By</div><div class="di-value">${c.requestedBy}</div></div>
+      <div class="detail-item"><div class="di-label">SLA Remaining</div><div class="di-value"><span class="timer-val ${c.slaClass}">${c.sla}</span></div></div>`;
+
+    if (c.correlatedPayment) {
+      detailHTML += `<div class="detail-item"><div class="di-label">Correlated Payment</div><div class="di-value" style="color:var(--red)">${c.correlatedPayment}</div></div>`;
+    }
+
+    detailHTML += `</div>`;
+    detailHTML += `<div style="margin-top:16px;padding:12px;background:var(--blue-bg);border-radius:var(--radius);font-size:12px"><strong>PSD2 Note:</strong> Approving this contact change requires a separate SCA event from any payment approval.</div>`;
+    body.innerHTML = detailHTML;
+
   } else if (type === 'entitlement') {
-    title.textContent = 'Entitlement Change — Sarah Chen';
-    body.innerHTML = `
-      <div class="detail-grid">
-        <div class="detail-item"><div class="di-label">User</div><div class="di-value">Sarah Chen</div></div>
-        <div class="detail-item"><div class="di-label">Change Type</div><div class="di-value">Payment Limit Increase</div></div>
-        <div class="detail-item"><div class="di-label">Current Limit</div><div class="di-value">EUR 50,000 (single payment)</div></div>
-        <div class="detail-item"><div class="di-label">Requested Limit</div><div class="di-value" style="color:var(--amber);font-weight:700">EUR 200,000 (single payment)</div></div>
-        <div class="detail-item"><div class="di-label">Workspace</div><div class="di-value">WS-A Treasury</div></div>
-        <div class="detail-item"><div class="di-label">Requested By</div><div class="di-value">M. Director (CFO Office)</div></div>
-        <div class="detail-item"><div class="di-label">Risk Assessment</div><div class="di-value"><span class="urgency-chip urgent">High — 4x increase</span></div></div>
-        <div class="detail-item"><div class="di-label">Justification</div><div class="di-value" style="font-size:12px">Expanded supplier relationship requires higher single-payment authority for Q1 contracts.</div></div>
-      </div>
-    `;
+    const e = ENTITLEMENTS.find(x => x.id === id);
+    if (!e) { modal.classList.add('open'); return; }
+    title.textContent = 'Entitlement Change — ' + e.user;
+
+    let detailHTML = `<div class="detail-grid">
+      <div class="detail-item"><div class="di-label">User</div><div class="di-value">${e.user}</div></div>
+      <div class="detail-item"><div class="di-label">Change Type</div><div class="di-value">${e.changeType}</div></div>`;
+
+    if (e.currentLimit) {
+      detailHTML += `<div class="detail-item"><div class="di-label">Current Limit</div><div class="di-value">${e.currentLimit} (single payment)</div></div>`;
+      detailHTML += `<div class="detail-item"><div class="di-label">Requested Limit</div><div class="di-value" style="color:var(--amber);font-weight:700">${e.requestedLimit} (single payment)</div></div>`;
+    }
+    if (e.permissions) {
+      detailHTML += `<div class="detail-item"><div class="di-label">Permissions</div><div class="di-value">${e.permissions}</div></div>`;
+    }
+    if (e.currentAccess) {
+      detailHTML += `<div class="detail-item"><div class="di-label">Current Access</div><div class="di-value">${e.currentAccess}</div></div>`;
+    }
+    if (e.reason) {
+      detailHTML += `<div class="detail-item"><div class="di-label">Reason</div><div class="di-value">${e.reason}</div></div>`;
+    }
+    if (e.currentRule) {
+      detailHTML += `<div class="detail-item"><div class="di-label">Current Rule</div><div class="di-value">${e.currentRule}</div></div>`;
+      detailHTML += `<div class="detail-item"><div class="di-label">Proposed Rule</div><div class="di-value" style="color:var(--amber);font-weight:600">${e.proposedRule}</div></div>`;
+    }
+    if (e.userCount) {
+      detailHTML += `<div class="detail-item"><div class="di-label">Users</div><div class="di-value">${e.userCount} users</div></div>`;
+      detailHTML += `<div class="detail-item"><div class="di-label">Access Level</div><div class="di-value">${e.accessLevel}</div></div>`;
+    }
+
+    detailHTML += `
+      <div class="detail-item"><div class="di-label">Workspace</div><div class="di-value">${e.ws}</div></div>
+      <div class="detail-item"><div class="di-label">Requested By</div><div class="di-value">${e.requestedBy}</div></div>
+      <div class="detail-item"><div class="di-label">Risk Assessment</div><div class="di-value"><span class="urgency-chip ${e.riskClass}">${e.risk}</span></div></div>
+      <div class="detail-item"><div class="di-label">SLA Remaining</div><div class="di-value"><span class="timer-val ${e.slaClass}">${e.sla}</span></div></div>`;
+
+    if (e.justification) {
+      detailHTML += `<div class="detail-item" style="grid-column:1/-1"><div class="di-label">Justification</div><div class="di-value" style="font-size:12px">${e.justification}</div></div>`;
+    }
+
+    detailHTML += `</div>`;
+    body.innerHTML = detailHTML;
   }
 
   modal.classList.add('open');
 }
 
-function closeModal() { document.getElementById('detailModal').classList.remove('open'); }
+function approveWithComment() {
+  const comment = document.getElementById('approvalComment')?.value?.trim();
+  const msg = comment ? `Approved with comment: "${comment}"` : 'Approved successfully';
+  showToast(msg);
+  closeModal();
+}
+
+function closeModal() {
+  document.getElementById('detailModal').classList.remove('open');
+  const commentEl = document.getElementById('approvalComment');
+  if (commentEl) commentEl.value = '';
+}
+
 function openRejectModal() { document.getElementById('rejectModal').classList.add('open'); }
 function closeRejectModal() { document.getElementById('rejectModal').classList.remove('open'); }
 
@@ -2527,14 +2844,13 @@ function toggleNotifications() {
 }
 
 function toggleApproveAllExcept() {
-  const btn = document.getElementById('aaeBtn');
+  const btn = event.target.closest('.action-btn');
   btn.classList.toggle('active');
   if (btn.classList.contains('active')) {
     btn.style.background = 'var(--amber)';
     btn.style.color = '#fff';
     btn.style.borderColor = 'var(--amber)';
-    const allIds = PAYMENTS.map(p => p.id);
-    cartItems = [...allIds];
+    cartItems = PAYMENTS.map(p => p.id);
     showToast('Approve All Except mode — deselect items to exclude');
   } else {
     btn.style.background = ''; btn.style.color = ''; btn.style.borderColor = '';
@@ -2543,19 +2859,6 @@ function toggleApproveAllExcept() {
   }
   updateCartUI();
   renderPaymentTable();
-}
-
-function setTabMode(mode) {
-  document.querySelectorAll('.proto-bar .toggle-group:first-of-type .tbtn').forEach(b => b.classList.remove('active'));
-  event.target.classList.add('active');
-  const content = document.getElementById('contentArea');
-  if (mode === 'cards') {
-    content.classList.add('layout-cards');
-    showToast('Card layout active — items grouped as expandable summary cards');
-  } else {
-    content.classList.remove('layout-cards');
-    showToast('Tab layout active — sub-tabs with data table view');
-  }
 }
 
 function toggleTypeCard(el) {
