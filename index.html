@@ -782,6 +782,91 @@ input, select { font-family: inherit; }
 
 .combined-panel { animation: fadeIn .2s ease; }
 
+/* ─── Workspace-Grouped Layout ─── */
+.ws-group { margin-bottom: 16px; border: 1px solid var(--border); border-radius: var(--radius-lg); overflow: hidden; }
+.ws-group-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 12px 16px; background: var(--surface); cursor: pointer;
+  border-bottom: 1px solid var(--border); transition: background .15s ease;
+}
+.ws-group-header:hover { background: var(--surface-hover); }
+.ws-group-header .wsg-left { display: flex; align-items: center; gap: 10px; }
+.ws-group-header .wsg-name { font-size: 14px; font-weight: 700; }
+.ws-group-header .wsg-count { font-size: 12px; color: var(--text-muted); }
+.ws-group-header .wsg-arrow { font-size: 12px; color: var(--text-muted); transition: transform .2s ease; }
+.ws-group.collapsed .wsg-arrow { transform: rotate(-90deg); }
+.ws-group-body { max-height: 2000px; overflow: hidden; transition: max-height .3s ease; }
+.ws-group.collapsed .ws-group-body { max-height: 0; border-top: none; }
+.ws-group-body .data-table { border-radius: 0; }
+.ws-group-body .data-table thead th { position: sticky; top: 0; }
+
+/* ─── Column Customization ─── */
+.col-config-wrap { position: relative; display: inline-block; }
+.col-config-btn {
+  background: none; border: 1px solid var(--border); border-radius: var(--radius);
+  padding: 5px 8px; cursor: pointer; color: var(--text-muted); display: flex;
+  align-items: center; gap: 4px; font-size: 11px; font-weight: 600;
+  transition: var(--transition);
+}
+.col-config-btn:hover { background: var(--surface-hover); color: var(--text); }
+.col-config-drop {
+  position: absolute; top: 100%; right: 0; margin-top: 4px; z-index: 100;
+  background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg); padding: 8px 0; min-width: 200px; display: none;
+}
+.col-config-drop.open { display: block; }
+.col-config-drop label {
+  display: flex; align-items: center; gap: 8px; padding: 6px 14px;
+  font-size: 12px; cursor: pointer; transition: background .1s ease;
+}
+.col-config-drop label:hover { background: var(--surface-hover); }
+.col-config-drop label input { accent-color: var(--accent); }
+
+/* ─── Just Actioned Banner ─── */
+.just-actioned {
+  border-radius: var(--radius-lg); padding: 16px 20px; margin-bottom: 16px;
+  animation: fadeIn .3s ease; display: none;
+}
+.just-actioned.visible { display: block; }
+.just-actioned.success-result { background: var(--green-bg); border: 2px solid var(--green-border); }
+.just-actioned.partial-result { background: var(--amber-bg); border: 2px solid var(--amber-border); }
+.just-actioned .ja-header { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+.just-actioned .ja-icon { font-size: 24px; }
+.just-actioned .ja-title { font-size: 15px; font-weight: 700; }
+.just-actioned .ja-body { font-size: 12px; color: var(--text-secondary); }
+.just-actioned .ja-items { margin-top: 10px; display: flex; flex-direction: column; gap: 4px; }
+.just-actioned .ja-item { display: flex; align-items: center; justify-content: space-between; padding: 6px 10px; background: rgba(255,255,255,.6); border-radius: var(--radius); font-size: 12px; }
+
+/* ─── Conflict Dialog ─── */
+.conflict-dialog {
+  position: fixed; inset: 0; z-index: 11000; background: rgba(0,0,0,.5);
+  display: none; align-items: center; justify-content: center;
+  backdrop-filter: blur(3px);
+}
+.conflict-dialog.open { display: flex; }
+.conflict-box {
+  background: #fff; border-radius: var(--radius-xl); padding: 28px;
+  max-width: 420px; width: 90%; box-shadow: var(--shadow-xl);
+  text-align: center; animation: fadeIn .2s ease;
+}
+.conflict-box .cb-icon { font-size: 40px; margin-bottom: 12px; }
+.conflict-box .cb-title { font-size: 16px; font-weight: 700; margin-bottom: 6px; }
+.conflict-box .cb-body { font-size: 13px; color: var(--text-secondary); margin-bottom: 16px; line-height: 1.6; }
+.conflict-box .cb-actions { display: flex; gap: 8px; justify-content: center; }
+
+/* ─── History Filter Bar ─── */
+.history-toolbar {
+  display: flex; align-items: center; gap: 8px; margin-bottom: 12px; flex-wrap: wrap;
+}
+.history-toolbar select, .history-toolbar input {
+  padding: 6px 10px; border: 1px solid var(--border); border-radius: var(--radius);
+  font-size: 12px; background: var(--surface); font-family: inherit;
+}
+.history-toolbar input { flex: 1; min-width: 160px; }
+
+/* ─── Re-submitted Badge ─── */
+.status-chip.resubmitted { background: var(--purple-bg); color: var(--purple); border: 1px solid var(--purple-border); }
+
 /* ─── Partial Success Banner ─── */
 .partial-banner {
   border-radius: var(--radius-lg); padding: 16px 20px; margin-bottom: 16px;
@@ -818,6 +903,7 @@ input, select { font-family: inherit; }
     <button class="tbtn active" onclick="setLayoutMode('separate')" data-layout="separate">Separate Tabs</button>
     <button class="tbtn" onclick="setLayoutMode('combined')" data-layout="combined">Combined Tabs</button>
     <button class="tbtn" onclick="setLayoutMode('cards')" data-layout="cards">Card Layout</button>
+    <button class="tbtn" onclick="setLayoutMode('workspace')" data-layout="workspace">Workspace Groups</button>
   </div>
   <div class="toggle-group">
     <button class="tbtn active" onclick="setView('desktop')">Desktop</button>
@@ -1178,6 +1264,20 @@ input, select { font-family: inherit; }
             <option value="amount-asc">Sort: Amount (low-high)</option>
             <option value="beneficiary">Sort: Beneficiary A-Z</option>
           </select>
+          <div class="col-config-wrap">
+            <button class="col-config-btn" onclick="toggleColConfig(event)">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+              Columns
+            </button>
+            <div class="col-config-drop" id="colConfigDrop">
+              <label><input type="checkbox" checked onchange="toggleColumn('type')"> Type</label>
+              <label><input type="checkbox" checked onchange="toggleColumn('amount')"> Amount</label>
+              <label><input type="checkbox" checked onchange="toggleColumn('workspace')"> Workspace</label>
+              <label><input type="checkbox" checked onchange="toggleColumn('urgency')"> Urgency</label>
+              <label><input type="checkbox" checked onchange="toggleColumn('timers')"> Timers</label>
+              <label><input type="checkbox" checked onchange="toggleColumn('status')"> Status</label>
+            </div>
+          </div>
         </div>
         <div class="card" style="padding:0; overflow-x:auto">
           <table class="data-table">
@@ -1319,6 +1419,9 @@ input, select { font-family: inherit; }
           <span style="font-size:12px;color:var(--text-muted)">Bank timezone: CET (UTC+1)</span>
         </div>
       </div>
+
+      <!-- PAYMENTS — WORKSPACE GROUPED LAYOUT -->
+      <div class="ws-grouped-only" style="display:none" id="paymentsWSGrouped"></div>
 
       <!-- Post-MVP: Kanban Workflow Stages -->
       <div style="margin-top:24px; border:1px dashed var(--purple-border); border-radius:var(--radius-lg); padding:16px; background:var(--purple-bg)">
@@ -1679,92 +1782,40 @@ input, select { font-family: inherit; }
         </div>
       </div>
 
-      <!-- Post-MVP: Just Actioned Confirmation -->
-      <div class="partial-banner success" style="margin-bottom:16px">
-        <div class="pb-icon">&#10003;</div>
-        <div>
-          <div class="pb-title">Batch Approved Successfully</div>
-          <div class="pb-body">10 of 10 payments approved &bull; Signed via Soft Token &bull; 2 minutes ago
-            <span class="phase-badge post" style="margin-left:8px;vertical-align:middle">Post-MVP: "Just Actioned" View</span>
-          </div>
-        </div>
-      </div>
+      <!-- Just Actioned Banner (dynamically shown after bulk action) -->
+      <div class="just-actioned" id="justActionedBanner"></div>
 
-      <div class="partial-banner partial" style="margin-bottom:16px">
-        <div class="pb-icon" style="color:var(--amber)">&#9888;</div>
-        <div>
-          <div class="pb-title" style="color:var(--amber)">Partial Success</div>
-          <div class="pb-body">8 of 10 approved. 2 failed — concurrency conflict (already approved by M. Director). Failed items returned to queue.
-            <span class="phase-badge mvp" style="margin-left:8px;vertical-align:middle">MVP</span>
-          </div>
-        </div>
+      <div class="history-toolbar">
+        <input type="text" placeholder="Search history..." id="historySearch" oninput="renderHistory()">
+        <select id="historyFilterAction" onchange="renderHistory()">
+          <option value="">All Actions</option>
+          <option value="Approved">Approved</option>
+          <option value="Rejected">Rejected</option>
+          <option value="Pending 2nd Approval">Pending 2nd</option>
+        </select>
+        <select id="historyFilterType" onchange="renderHistory()">
+          <option value="">All Types</option>
+          <option value="Payment">Payments</option>
+          <option value="Contact">Contacts</option>
+          <option value="Entitlement">Entitlements</option>
+        </select>
+        <select id="historyFilterTime" onchange="renderHistory()">
+          <option value="">All Time</option>
+          <option value="today">Today</option>
+          <option value="yesterday">Yesterday</option>
+          <option value="week">This Week</option>
+        </select>
       </div>
 
       <div class="card" style="padding:0; overflow-x:auto">
         <table class="data-table">
           <thead>
-            <tr>
-              <th>Item</th>
-              <th>Type</th>
-              <th>Amount</th>
-              <th>Action</th>
-              <th>Actioned By</th>
-              <th>When</th>
-              <th>Workspace</th>
-            </tr>
+            <tr><th>Item</th><th>Type</th><th>Amount</th><th>Action</th><th>Actioned By</th><th>When</th><th>Workspace</th></tr>
           </thead>
-          <tbody>
-            <tr>
-              <td><strong>SEPA — Dubois SARL</strong></td>
-              <td>Payment</td>
-              <td>EUR 8,400</td>
-              <td><span class="status-chip approved">Approved</span></td>
-              <td>A. Szilágyi</td>
-              <td>Today, 10:42</td>
-              <td><span class="ws-chip">WS-B</span></td>
-            </tr>
-            <tr>
-              <td><strong>ACH Credit — Davis Corp</strong></td>
-              <td>Payment</td>
-              <td>USD 34,200</td>
-              <td><span class="status-chip approved">Approved</span></td>
-              <td>A. Szilágyi</td>
-              <td>Today, 10:38</td>
-              <td><span class="ws-chip">WS-D</span></td>
-            </tr>
-            <tr>
-              <td>
-                <strong>Wire — Suspicious Vendor LLC</strong>
-                <div style="font-size:11px"><span class="status-chip resubmitted">Re-submitted</span> <span style="color:var(--text-muted)">Previously rejected: "Unverified beneficiary"</span></div>
-              </td>
-              <td>Payment</td>
-              <td>USD 12,000</td>
-              <td><span class="status-chip rejected">Rejected</span></td>
-              <td>M. Director</td>
-              <td>Today, 09:55</td>
-              <td><span class="ws-chip">WS-D</span></td>
-            </tr>
-            <tr>
-              <td><strong>Evergreen Solutions — New Payee</strong></td>
-              <td>Contact</td>
-              <td>—</td>
-              <td><span class="status-chip approved">Approved</span></td>
-              <td>A. Szilágyi</td>
-              <td>Yesterday, 16:20</td>
-              <td><span class="ws-chip">WS-A</span></td>
-            </tr>
-            <tr>
-              <td><strong>J. Wilson — Access Grant</strong></td>
-              <td>Entitlement</td>
-              <td>—</td>
-              <td><span class="status-chip pending">Pending 2nd Approval</span></td>
-              <td>A. Szilágyi (1/2)</td>
-              <td>Yesterday, 15:10</td>
-              <td><span class="ws-chip">WS-B</span></td>
-            </tr>
-          </tbody>
+          <tbody id="historyTableBody"></tbody>
         </table>
       </div>
+      <div style="margin-top:8px;font-size:12px;color:var(--text-muted)" id="historyCount"></div>
     </section>
 
     <!-- ═══════ VIEW: Reports ═══════ -->
@@ -1970,14 +2021,14 @@ input, select { font-family: inherit; }
               <div style="font-size:13px;font-weight:600">Low-Risk Routine Batch</div>
               <div style="font-size:11px;color:var(--text-secondary)">15 SEPA payments &bull; All to trusted payees &bull; Within normal ranges &bull; EUR 47,800 total</div>
             </div>
-            <button class="action-btn success" style="font-size:11px;padding:5px 12px" onclick="showToast('15 items added to cart')">Add to Cart</button>
+            <button class="action-btn success" style="font-size:11px;padding:5px 12px" onclick="addToCartFromIntel('low-risk')">Add to Cart</button>
           </div>
           <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border:1px solid var(--amber-border);border-radius:var(--radius);background:var(--amber-bg)">
             <div>
               <div style="font-size:13px;font-weight:600">Requires Individual Review</div>
               <div style="font-size:11px;color:var(--text-secondary)">3 payments &bull; First-time beneficiaries or amount anomalies &bull; USD 135,700 total</div>
             </div>
-            <button class="action-btn" style="font-size:11px;padding:5px 12px" onclick="showView('payments')">Review Each</button>
+            <button class="action-btn" style="font-size:11px;padding:5px 12px" onclick="addToCartFromIntel('review');showView('payments')">Review & Add to Cart</button>
           </div>
         </div>
       </div>
@@ -2311,6 +2362,7 @@ input, select { font-family: inherit; }
       <div class="cart-summary-item"><div class="cs-label">Total (USD)</div><div class="cs-value" id="csSummaryUSD">USD 0</div></div>
       <div class="cart-summary-item"><div class="cs-label">Workspaces</div><div class="cs-value" id="csSummaryWS">0</div></div>
     </div>
+    <div id="cartAnalytics" style="display:none;margin-bottom:8px;padding:8px;background:var(--amber-bg);border:1px solid var(--amber-border);border-radius:var(--radius);font-size:11px;color:var(--text-secondary)"></div>
     <div style="font-size:11px;color:var(--text-muted);margin-bottom:10px;padding:6px 8px;background:var(--surface);border-radius:var(--radius);border:1px solid var(--border-light)">
       <strong>Signing Requirement:</strong> 1 signature per batch (bank policy) &bull; Method: Soft Token or OTP
     </div>
@@ -2410,6 +2462,19 @@ input, select { font-family: inherit; }
   </div>
 </div>
 
+<!-- ═══════ CONFLICT DIALOG ═══════ -->
+<div class="conflict-dialog" id="conflictDialog">
+  <div class="conflict-box">
+    <div class="cb-icon">&#9888;</div>
+    <div class="cb-title" id="conflictTitle">Concurrency Conflict</div>
+    <div class="cb-body" id="conflictBody">This item was already approved by another user while you were reviewing it. The dashboard will refresh to show the latest state.</div>
+    <div class="cb-actions">
+      <button class="action-btn" onclick="closeConflict(false)">Dismiss</button>
+      <button class="action-btn primary" onclick="closeConflict(true)">Refresh Dashboard</button>
+    </div>
+  </div>
+</div>
+
 <!-- ═══════ TOAST ═══════ -->
 <div class="toast-container" id="toastContainer"></div>
 
@@ -2430,6 +2495,7 @@ const PAYMENTS = [
   { id:'ACH-C-510', type:'ACH Credit', beneficiary:'Thompson LLC', ref:'PO-TL-510', amount:22100, currency:'USD', ws:'WS-D Americas', urgency:'normal', cutoff:'5h 45min', sla:'6h', status:'Entered' },
   { id:'SEPA-3040', type:'SEPA', beneficiary:'Petrov Ltd', ref:'INV-PL-3040', amount:6300, currency:'EUR', ws:'WS-C Logistics', urgency:'normal', cutoff:'8h', sla:'10h', status:'Entered' },
   { id:'WIRE-210', type:'Domestic Wire', beneficiary:'Anderson & Co', ref:'ADV-AC-210', amount:18500, currency:'USD', ws:'WS-D Americas', urgency:'normal', cutoff:'6h 30min', sla:'8h', status:'Entered' },
+  { id:'WIRE-220', type:'Domestic Wire', beneficiary:'Suspicious Vendor LLC', ref:'ADV-SV-220', amount:12000, currency:'USD', ws:'WS-D Americas', urgency:'normal', cutoff:'5h', sla:'6h', status:'Re-submitted', resubmitted:true, priorRejection:'Unverified beneficiary' },
 ];
 
 const CONTACTS = [
@@ -2500,10 +2566,11 @@ function renderPaymentRows(filtered, tbodyId) {
     const cutClass = p.urgency === 'critical' ? 'red' : p.urgency === 'urgent' ? 'amber' : 'green';
     const slaClass = p.sla === 'Breached' ? 'red' : p.urgency === 'urgent' ? 'amber' : 'green';
     const anomalyBadge = p.anomaly ? '<div style="font-size:10px;margin-top:2px"><span class="status-chip anomaly">Anomaly</span></div>' : '';
+    const resubBadge = p.resubmitted ? `<div style="font-size:10px;margin-top:2px"><span class="status-chip resubmitted">Re-submitted</span> <span style="font-size:10px;color:var(--text-muted)">Prior: "${p.priorRejection}"</span></div>` : '';
     const inCart = cartItems.includes(p.id);
     return `<tr onclick="openDetail('payment','${p.id}')" class="${inCart?'selected':''}">
       <td class="check-col"><input type="checkbox" ${inCart?'checked':''} onclick="event.stopPropagation();toggleCartItem(this,'${p.id}')"></td>
-      <td><div style="font-weight:600">${p.beneficiary}</div><div style="font-size:11px;color:var(--text-muted)">${p.ref}</div>${anomalyBadge}</td>
+      <td><div style="font-weight:600">${p.beneficiary}</div><div style="font-size:11px;color:var(--text-muted)">${p.ref}</div>${anomalyBadge}${resubBadge}</td>
       <td><span style="font-size:11px;font-weight:600">${p.type}</span></td>
       <td><strong>${p.currency} ${p.amount.toLocaleString()}</strong></td>
       <td><span class="ws-chip">${p.ws}</span></td>
@@ -2622,53 +2689,20 @@ function toggleAllPriority(cb) {
   showToast(cb.checked ? '4 priority items selected' : 'Selection cleared');
 }
 
-function executeBulkApprove() {
-  if (cartItems.length === 0) { showToast('Cart is empty'); return; }
-  showToast(`${cartItems.length} items approved successfully!`);
-  cartItems = [];
-  updateCartUI();
-  renderPaymentTable();
-  closeCart();
-}
-
 function showView(view) {
   document.querySelectorAll('.view-section').forEach(s => s.classList.remove('active'));
   document.getElementById('view-' + view).classList.add('active');
   document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
   document.querySelector(`.nav-item[data-view="${view}"]`)?.classList.add('active');
   if (view === 'combined') renderPaymentTable();
-  window.scrollTo({ top: 0, behavior: 'smooth' });
-}
-
-function setLayoutMode(mode) {
-  currentLayoutMode = mode;
-  document.querySelectorAll('.proto-bar .toggle-group:first-of-type .tbtn').forEach(b => b.classList.remove('active'));
-  document.querySelector(`.proto-bar .tbtn[data-layout="${mode}"]`).classList.add('active');
-  const content = document.getElementById('contentArea');
-  const navCombined = document.getElementById('navCombined');
-  const navSeparate = document.getElementById('navSeparate');
-
-  content.classList.remove('layout-cards');
-
-  if (mode === 'combined') {
-    navCombined.style.display = 'block';
-    navSeparate.style.display = 'none';
-    showView('combined');
-    showToast('Combined tab layout — all approval objects in one unified view');
-  } else if (mode === 'cards') {
-    navCombined.style.display = 'none';
-    navSeparate.style.display = 'block';
-    content.classList.add('layout-cards');
-    const activeNav = document.querySelector('#navSeparate .nav-item.active');
-    if (!activeNav) showView('payments');
-    showToast('Card layout active — items grouped as expandable summary cards');
-  } else {
-    navCombined.style.display = 'none';
-    navSeparate.style.display = 'block';
-    const activeNav = document.querySelector('#navSeparate .nav-item.active');
-    if (!activeNav) showView('payments');
-    showToast('Separate tab layout — each object type in its own section');
+  if (view === 'history') renderHistory();
+  if (currentLayoutMode === 'workspace' && ['payments','contacts','entitlements'].includes(view)) {
+    const section = document.getElementById('view-' + view);
+    section.querySelectorAll('.tab-only').forEach(el => el.style.display = 'none');
+    section.querySelectorAll('.ws-grouped-only').forEach(el => el.style.display = 'block');
+    renderWSGrouped();
   }
+  window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
 function setCombinedTab(panelId) {
@@ -2811,13 +2845,6 @@ function openDetail(type, id) {
   modal.classList.add('open');
 }
 
-function approveWithComment() {
-  const comment = document.getElementById('approvalComment')?.value?.trim();
-  const msg = comment ? `Approved with comment: "${comment}"` : 'Approved successfully';
-  showToast(msg);
-  closeModal();
-}
-
 function closeModal() {
   document.getElementById('detailModal').classList.remove('open');
   const commentEl = document.getElementById('approvalComment');
@@ -2888,8 +2915,304 @@ function showToast(msg) {
   setTimeout(() => toast.remove(), 3000);
 }
 
+/* ═══════ HISTORY DATA ═══════ */
+const HISTORY = [
+  { item:'SEPA — Dubois SARL', type:'Payment', amount:'EUR 8,400', action:'Approved', by:'A. Szilágyi', when:'Today, 10:42', ws:'WS-B', time:'today' },
+  { item:'ACH Credit — Davis Corp', type:'Payment', amount:'USD 34,200', action:'Approved', by:'A. Szilágyi', when:'Today, 10:38', ws:'WS-D', time:'today' },
+  { item:'Wire — Suspicious Vendor LLC', type:'Payment', amount:'USD 12,000', action:'Rejected', by:'M. Director', when:'Today, 09:55', ws:'WS-D', time:'today', resubmitted:true, priorReason:'Unverified beneficiary' },
+  { item:'SEPA — Müller AG', type:'Payment', amount:'EUR 12,800', action:'Approved', by:'A. Szilágyi', when:'Today, 09:30', ws:'WS-A', time:'today' },
+  { item:'SWIFT — Yamamoto Trading', type:'Payment', amount:'USD 42,000', action:'Approved', by:'M. Director', when:'Today, 08:15', ws:'WS-B', time:'today' },
+  { item:'Evergreen Solutions — New Payee', type:'Contact', amount:'—', action:'Approved', by:'A. Szilágyi', when:'Yesterday, 16:20', ws:'WS-A', time:'yesterday' },
+  { item:'Wire — Global Supplies', type:'Payment', amount:'USD 28,000', action:'Approved', by:'A. Szilágyi', when:'Yesterday, 15:45', ws:'WS-D', time:'yesterday', resubmitted:true, priorReason:'Incorrect payment details' },
+  { item:'J. Wilson — Access Grant', type:'Entitlement', amount:'—', action:'Pending 2nd Approval', by:'A. Szilágyi (1/2)', when:'Yesterday, 15:10', ws:'WS-B', time:'yesterday' },
+  { item:'SEPA — Schmidt GmbH', type:'Payment', amount:'EUR 15,200', action:'Approved', by:'A. Szilágyi', when:'Yesterday, 14:30', ws:'WS-A', time:'yesterday' },
+  { item:'Nordic Freight — IBAN Change', type:'Contact', amount:'—', action:'Rejected', by:'M. Director', when:'Yesterday, 11:00', ws:'WS-C', time:'yesterday' },
+  { item:'ACH Debit — MegaCorp', type:'Payment', amount:'USD 15,800', action:'Approved', by:'A. Szilágyi', when:'Mon, 16:40', ws:'WS-D', time:'week' },
+  { item:'S. Chen — Limit Increase', type:'Entitlement', amount:'—', action:'Rejected', by:'Compliance', when:'Mon, 14:20', ws:'WS-A', time:'week' },
+  { item:'SEPA — Rossi SpA', type:'Payment', amount:'EUR 28,700', action:'Approved', by:'M. Director', when:'Mon, 10:05', ws:'WS-B', time:'week' },
+];
+
+function renderHistory() {
+  const search = (document.getElementById('historySearch')?.value || '').toLowerCase();
+  const filterAction = document.getElementById('historyFilterAction')?.value || '';
+  const filterType = document.getElementById('historyFilterType')?.value || '';
+  const filterTime = document.getElementById('historyFilterTime')?.value || '';
+
+  let filtered = HISTORY.filter(h => {
+    if (search && !h.item.toLowerCase().includes(search) && !h.ws.toLowerCase().includes(search) && !h.by.toLowerCase().includes(search)) return false;
+    if (filterAction && h.action !== filterAction) return false;
+    if (filterType && h.type !== filterType) return false;
+    if (filterTime && h.time !== filterTime) return false;
+    return true;
+  });
+
+  const tbody = document.getElementById('historyTableBody');
+  if (!tbody) return;
+  tbody.innerHTML = filtered.map(h => {
+    const actionClass = h.action === 'Approved' ? 'approved' : h.action === 'Rejected' ? 'rejected' : 'pending';
+    const resubBadge = h.resubmitted ? `<div style="font-size:11px"><span class="status-chip resubmitted">Re-submitted</span> <span style="color:var(--text-muted)">Prior: "${h.priorReason}"</span></div>` : '';
+    return `<tr><td><strong>${h.item}</strong>${resubBadge}</td><td>${h.type}</td><td>${h.amount}</td><td><span class="status-chip ${actionClass}">${h.action}</span></td><td>${h.by}</td><td>${h.when}</td><td><span class="ws-chip">${h.ws}</span></td></tr>`;
+  }).join('');
+  document.getElementById('historyCount').textContent = `Showing ${filtered.length} of ${HISTORY.length} history items`;
+}
+
+/* ═══════ JUST ACTIONED BANNER ═══════ */
+function showJustActioned(results) {
+  const banner = document.getElementById('justActionedBanner');
+  const isPartial = results.failed.length > 0;
+  banner.className = 'just-actioned visible ' + (isPartial ? 'partial-result' : 'success-result');
+
+  let itemsHTML = '';
+  results.succeeded.slice(0, 5).forEach(p => {
+    itemsHTML += `<div class="ja-item"><span><strong>${p.beneficiary}</strong> — ${p.type}</span><span style="color:var(--green);font-weight:600">&#10003; Approved</span></div>`;
+  });
+  if (results.succeeded.length > 5) itemsHTML += `<div class="ja-item" style="color:var(--text-muted)">+ ${results.succeeded.length - 5} more approved</div>`;
+  results.failed.forEach(f => {
+    itemsHTML += `<div class="ja-item" style="background:rgba(220,38,38,.08)"><span><strong>${f.beneficiary}</strong> — ${f.type}</span><span style="color:var(--red);font-weight:600">&#10007; ${f.reason}</span></div>`;
+  });
+
+  banner.innerHTML = `
+    <div class="ja-header">
+      <div class="ja-icon">${isPartial ? '&#9888;' : '&#10003;'}</div>
+      <div>
+        <div class="ja-title" ${isPartial ? 'style="color:var(--amber)"' : ''}>${isPartial ? 'Partial Success' : 'Batch Approved Successfully'}</div>
+        <div class="ja-body">${results.succeeded.length} of ${results.total} approved${results.failed.length ? ` &bull; ${results.failed.length} failed — returned to queue` : ''} &bull; Signed via Soft Token &bull; Just now</div>
+      </div>
+    </div>
+    <div class="ja-items">${itemsHTML}</div>
+  `;
+}
+
+/* ═══════ BULK APPROVE WITH PARTIAL FAILURE ═══════ */
+function executeBulkApprove() {
+  if (cartItems.length === 0) { showToast('Cart is empty'); return; }
+  const items = PAYMENTS.filter(p => cartItems.includes(p.id));
+  const succeeded = [];
+  const failed = [];
+
+  items.forEach(p => {
+    if (Math.random() < 0.15) {
+      failed.push({ ...p, reason: Math.random() > 0.5 ? 'Concurrency conflict — already approved by M. Director' : 'SOD violation — initiator cannot approve' });
+    } else {
+      succeeded.push(p);
+    }
+  });
+
+  const results = { total: items.length, succeeded, failed };
+
+  succeeded.forEach(p => {
+    HISTORY.unshift({ item:`${p.type} — ${p.beneficiary}`, type:'Payment', amount:`${p.currency} ${p.amount.toLocaleString()}`, action:'Approved', by:'A. Szilágyi', when:'Just now', ws:p.ws.split(' ')[0], time:'today' });
+  });
+
+  showJustActioned(results);
+  cartItems = [];
+  updateCartUI();
+  renderPaymentTable();
+  closeCart();
+  showView('history');
+  renderHistory();
+
+  if (failed.length > 0) {
+    showToast(`${succeeded.length} approved, ${failed.length} failed — see details in history`);
+  } else {
+    showToast(`All ${succeeded.length} items approved successfully!`);
+  }
+}
+
+/* ═══════ CONFLICT SIMULATION ═══════ */
+let conflictRefreshCallback = null;
+function simulateConflict(itemName) {
+  document.getElementById('conflictTitle').textContent = 'Concurrency Conflict';
+  document.getElementById('conflictBody').textContent = `"${itemName}" was already approved by M. Director while you were reviewing it. The dashboard will refresh to show the latest state.`;
+  document.getElementById('conflictDialog').classList.add('open');
+}
+function closeConflict(refresh) {
+  document.getElementById('conflictDialog').classList.remove('open');
+  if (refresh) {
+    renderPaymentTable();
+    renderHistory();
+    showToast('Dashboard refreshed — showing latest data');
+  }
+}
+
+function approveWithComment() {
+  const comment = document.getElementById('approvalComment')?.value?.trim();
+  if (Math.random() < 0.2) {
+    closeModal();
+    const title = document.getElementById('modalTitle')?.textContent || 'Item';
+    simulateConflict(title.replace('Payment Detail — ','').replace('Contact Detail — ','').replace('Entitlement Change — ',''));
+    return;
+  }
+  const msg = comment ? `Approved with comment: "${comment}"` : 'Approved successfully';
+  showToast(msg);
+  closeModal();
+}
+
+/* ═══════ WORKSPACE GROUPED LAYOUT ═══════ */
+function renderWSGrouped() {
+  const container = document.getElementById('paymentsWSGrouped');
+  if (!container) return;
+  const filtered = getFilteredPayments();
+  const groups = {};
+  filtered.forEach(p => {
+    if (!groups[p.ws]) groups[p.ws] = [];
+    groups[p.ws].push(p);
+  });
+
+  container.innerHTML = Object.entries(groups).map(([ws, items]) => {
+    const totalAmount = items.reduce((s, p) => s + p.amount, 0);
+    const critCount = items.filter(p => p.urgency === 'critical').length;
+    const urgCount = items.filter(p => p.urgency === 'urgent').length;
+    const urgInfo = [critCount ? `${critCount} critical` : '', urgCount ? `${urgCount} urgent` : ''].filter(Boolean).join(', ') || 'All normal';
+
+    const rows = items.map(p => {
+      const urgClass = p.urgency === 'critical' ? 'critical' : p.urgency === 'urgent' ? 'urgent' : 'normal';
+      const inCart = cartItems.includes(p.id);
+      return `<tr onclick="openDetail('payment','${p.id}')" class="${inCart?'selected':''}">
+        <td class="check-col"><input type="checkbox" ${inCart?'checked':''} onclick="event.stopPropagation();toggleCartItem(this,'${p.id}')"></td>
+        <td><strong>${p.beneficiary}</strong><div style="font-size:11px;color:var(--text-muted)">${p.ref}</div></td>
+        <td>${p.type}</td>
+        <td><strong>${p.currency} ${p.amount.toLocaleString()}</strong></td>
+        <td><span class="urgency-chip ${urgClass}">${p.urgency.charAt(0).toUpperCase()+p.urgency.slice(1)}</span></td>
+        <td>${p.cutoff}</td>
+      </tr>`;
+    }).join('');
+
+    return `<div class="ws-group" onclick="if(event.target.closest('.ws-group-header'))this.classList.toggle('collapsed')">
+      <div class="ws-group-header">
+        <div class="wsg-left">
+          <span class="ws-chip">${ws}</span>
+          <span class="wsg-name">${items.length} items</span>
+          <span class="wsg-count">&bull; Total: ${items[0].currency} ${totalAmount.toLocaleString()} &bull; ${urgInfo}</span>
+        </div>
+        <span class="wsg-arrow">&#9660;</span>
+      </div>
+      <div class="ws-group-body">
+        <table class="data-table"><thead><tr><th class="check-col"><input type="checkbox"></th><th>Beneficiary</th><th>Type</th><th>Amount</th><th>Urgency</th><th>Cut-off</th></tr></thead><tbody>${rows}</tbody></table>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+/* ═══════ ENHANCED CART ANALYTICS ═══════ */
+function updateCartAnalytics() {
+  const el = document.getElementById('cartAnalytics');
+  if (!el) return;
+  const items = PAYMENTS.filter(p => cartItems.includes(p.id));
+  if (items.length < 2) { el.style.display = 'none'; return; }
+
+  el.style.display = 'block';
+  const totalEUR = items.filter(p => p.currency === 'EUR').reduce((s, p) => s + p.amount, 0);
+  const totalUSD = items.filter(p => p.currency === 'USD').reduce((s, p) => s + p.amount, 0);
+  const monthlyEUR = 2400000;
+  const monthlyUSD = 1800000;
+  const eurPct = totalEUR > 0 ? ((totalEUR / monthlyEUR) * 100).toFixed(1) : 0;
+  const usdPct = totalUSD > 0 ? ((totalUSD / monthlyUSD) * 100).toFixed(1) : 0;
+  const firstTimeBenef = items.filter(p => ['SWIFT-1103', 'WIRE-201'].includes(p.id)).length;
+  const anomalies = items.filter(p => p.anomaly).length;
+
+  let html = '<strong>Batch Risk Analytics</strong> <span class="phase-badge post" style="vertical-align:middle;margin-left:4px;font-size:9px">Post-MVP</span><br>';
+  if (eurPct > 0) html += `EUR batch = ${eurPct}% of WS monthly outflow &bull; `;
+  if (usdPct > 0) html += `USD batch = ${usdPct}% of WS monthly outflow &bull; `;
+  if (firstTimeBenef > 0) html += `<span style="color:var(--amber);font-weight:700">${firstTimeBenef} first-time beneficiary</span> &bull; `;
+  if (anomalies > 0) html += `<span style="color:var(--red);font-weight:700">${anomalies} anomaly flagged</span> &bull; `;
+  html += `${items.length} items across ${new Set(items.map(p => p.ws)).size} workspaces`;
+  el.innerHTML = html;
+}
+
+/* ═══════ COLUMN CUSTOMIZATION ═══════ */
+const hiddenColumns = new Set();
+function toggleColConfig(e) {
+  e.stopPropagation();
+  document.getElementById('colConfigDrop').classList.toggle('open');
+}
+document.addEventListener('click', () => document.getElementById('colConfigDrop')?.classList.remove('open'));
+
+function toggleColumn(col) {
+  if (hiddenColumns.has(col)) hiddenColumns.delete(col); else hiddenColumns.add(col);
+  applyColumnVisibility();
+}
+
+function applyColumnVisibility() {
+  const colMap = { type: 2, amount: 3, workspace: 4, urgency: 5, timers: 6, status: 7 };
+  document.querySelectorAll('#paymentsTableBody, #view-payments .tab-only thead').forEach(section => {
+    const table = section.closest('table');
+    if (!table) return;
+    table.querySelectorAll('tr').forEach(row => {
+      Object.entries(colMap).forEach(([col, idx]) => {
+        const cell = row.children[idx];
+        if (cell) cell.style.display = hiddenColumns.has(col) ? 'none' : '';
+      });
+    });
+  });
+}
+
+/* ═══════ LAYOUT MODE (4-way) ═══════ */
+function setLayoutMode(mode) {
+  currentLayoutMode = mode;
+  document.querySelectorAll('.proto-bar .toggle-group:first-of-type .tbtn').forEach(b => b.classList.remove('active'));
+  document.querySelector(`.proto-bar .tbtn[data-layout="${mode}"]`).classList.add('active');
+  const content = document.getElementById('contentArea');
+  const navCombined = document.getElementById('navCombined');
+  const navSeparate = document.getElementById('navSeparate');
+
+  content.classList.remove('layout-cards');
+  document.querySelectorAll('.ws-grouped-only').forEach(el => el.style.display = 'none');
+
+  if (mode === 'combined') {
+    navCombined.style.display = 'block';
+    navSeparate.style.display = 'none';
+    showView('combined');
+    showToast('Combined tab layout — all approval objects in one unified view');
+  } else if (mode === 'cards') {
+    navCombined.style.display = 'none';
+    navSeparate.style.display = 'block';
+    content.classList.add('layout-cards');
+    if (!document.querySelector('#navSeparate .nav-item.active')) showView('payments');
+    showToast('Card layout — items grouped as expandable summary cards');
+  } else if (mode === 'workspace') {
+    navCombined.style.display = 'none';
+    navSeparate.style.display = 'block';
+    document.querySelectorAll('.tab-only').forEach(el => el.style.display = 'none');
+    document.querySelectorAll('.ws-grouped-only').forEach(el => el.style.display = 'block');
+    renderWSGrouped();
+    if (!document.querySelector('#navSeparate .nav-item.active')) showView('payments');
+    showToast('Workspace-grouped layout — items grouped by workspace in collapsible sections');
+  } else {
+    navCombined.style.display = 'none';
+    navSeparate.style.display = 'block';
+    document.querySelectorAll('.tab-only').forEach(el => el.style.display = '');
+    document.querySelectorAll('.ws-grouped-only').forEach(el => el.style.display = 'none');
+    if (!document.querySelector('#navSeparate .nav-item.active')) showView('payments');
+    showToast('Separate tab layout — each object type in its own section');
+  }
+}
+
+/* ═══════ INTELLIGENCE INTERACTIVITY ═══════ */
+function addToCartFromIntel(type) {
+  let ids;
+  if (type === 'low-risk') {
+    ids = PAYMENTS.filter(p => p.urgency === 'normal').map(p => p.id);
+  } else if (type === 'review') {
+    ids = PAYMENTS.filter(p => p.anomaly || p.urgency === 'critical').map(p => p.id);
+  }
+  ids.forEach(id => { if (!cartItems.includes(id)) cartItems.push(id); });
+  updateCartUI();
+  renderPaymentTable();
+  showToast(`${ids.length} items added to cart`);
+}
+
+/* ═══════ OVERRIDDEN updateCartUI ═══════ */
+const _origUpdateCartUI = updateCartUI;
+updateCartUI = function() {
+  _origUpdateCartUI();
+  updateCartAnalytics();
+  if (currentLayoutMode === 'workspace') renderWSGrouped();
+};
+
 renderPaymentTable();
 updateCartUI();
+renderHistory();
 
 document.getElementById('detailModal').addEventListener('click', closeModal);
 </script>
